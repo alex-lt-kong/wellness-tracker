@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from flask import Flask, render_template, Response,request, redirect, session
-from flask import send_file
+from flask import send_file, jsonify
 from flask_cors import CORS
 from hashlib import sha256
 from scipy.stats import norm
@@ -43,7 +43,9 @@ CORS(app)
 # This necessary for javascript to access a telemetry link without opening it:
 # https://stackoverflow.com/questions/22181384/javascript-no-access-control-allow-origin-header-is-present-on-the-requested
 stop_signal = False
+app_address = ''
 app_path = '/root/bin/weight-manager'
+debug_mode = False
 settings_path = f'{app_path}/settings.json'
 users_path = f'{app_path}/users.json'
 plots_path = f'{app_path}/plots'
@@ -194,23 +196,47 @@ def get_weight_data():
         username = session[f'{app_name}']['username']
     else:
         return Response('用户未登录', 401)
-
+    
+    days = -1
     try:
-        user = str(request.args.get('user'))
+        days = int(request.args.get('days')) - 1
         value_type = str(request.args.get('value_type'))
     except Exception as ex:
         return Response('参数错误', 400)
-    sql = """
-        SELECT `id`, `record_time`, `value`, `value_type`
-        FROM `weights` WHERE `username` = %s AND `value_type` = %s"""
-    conn = pymysql.connect(db_url, db_username, db_password, db_name)
-    conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
-    cursor = conn.cursor()
-    cursor.execute(sql, (current_time, username))
-    results = cursor.fetchall()
-    cursor.close()
-    print(results)
+    if days <= 0 or days >= 3650:
+        days = 3650
 
+    db_conn_str = f'mysql+pymysql://{db_username}:{db_password}@{db_url}/{db_name}'
+    db_conn = create_engine(db_conn_str)
+    sql = text('''
+    SELECT `record_time`, `value` AS value_raw, `remark`
+    FROM `weights`
+    WHERE `username` = :username AND
+          (`record_time` >= (DATE(NOW()) - INTERVAL :days DAY))
+    ORDER BY `record_time` DESC
+    ''')
+    df = pd.read_sql(sql,
+                    con=db_conn,
+                    params={'username': username, 'days': days})
+
+    span =  int(df.shape[0] / 5)
+    if span < 1:
+        span = 1
+    df.loc[:,'value_ema'] = df['value_raw'].ewm(span=span, adjust=False).mean().round(2)
+    print(df)
+    record_times, values_raw, values_ema, remarks = [], [], [], []
+    for index, row in df.iterrows():
+        record_times.append(row['record_time'].strftime("%Y-%m-%d %H:%M:%S"))
+        values_raw.append(row['value_raw'])
+        values_ema.append(row['value_ema'])
+        remarks.append(row['remark'])
+
+    return json.dumps({
+        "record_times": record_times,
+        "values_raw": values_raw,
+        "values_ema": values_ema,
+        "remarks": remarks
+    }, ensure_ascii=False)
 
 @app.route('/summary/', methods=['GET'])
 def summary():
@@ -308,10 +334,16 @@ def chart():
     times_string = times_string[:-1]
     remark_string = remark_string[:-1]
 
+    kwargs = {
+        'app_address': app_address,
+        'mode': 'dev' if debug_mode else 'prod'
+        }
+
     return render_template('chart.html',
                            times_string=times_string,
                            readings_strings=readings_string,
-                           remark_string=remark_string)
+                           remark_string=remark_string,
+                           **kwargs)
 
 
 @app.route('/prediction/', methods=['GET'])
@@ -547,19 +579,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--debug', dest='debug', action='store_true')
     args = vars(ap.parse_args())
+    global debug_mode
     debug_mode = args['debug']
 
     with open(settings_path, 'r') as json_file:
         json_str = json_file.read()
         json_data = json.loads(json_str)
 
-    global db_url, db_username, db_password, db_username
+    global db_url, db_username, db_password, db_name
+    global app_address
     db_url = json_data['db']['url']
     db_username = json_data['db']['username']
     db_password = json_data['db']['password']
-    db_username = json_data['db']['username']
+    db_name = json_data['db']['name']
 
     app.secret_key = json_data['app']['secret_key']
+    app_address = json_data['app']['app_address']
+    # secret_key must be the same if the server is shared by more than one service!
     print(app.secret_key)
     logging.basicConfig(
         filename='/var/log/mamsds/weight-manager.log',

@@ -115,7 +115,6 @@ def make_session_permanent():
     session.permanent = True
     app.permanent_session_lifetime = dt.timedelta(days=365)
 
-
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
 
