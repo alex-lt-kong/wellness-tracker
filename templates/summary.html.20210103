@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="shortcut icon" href="//monitor.sz.lan/weight_manager/static/favicon.png">
+<link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
+<script src="//monitor.sz.lan/resources/monitor.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<html>
+<head><title>体重管理器-统计[{{subject_name}}]</title>
+  <script>
+  window.onload = function() { 
+    logUserInteractions('[weight-manager/statistics] load');
+    fillLinearChart(60);
+  };
+  window.onunload = function() { logUserInteractions('[weight-manager/statistics] unload'); };
+  function fillLinearChart(days) {
+    target_iframe = document.getElementById('iframe-linechart');
+    logUserInteractions('[weight-manager/statistics] days changed to ' + days.toString());
+    target_iframe.src = 'https://monitor.sz.lan/weight_manager/chart/?subject_name={{subject_name}}&days=' + days.toString();
+  }
+  </script>
+</head>
+<body>
+<div class="w3-container w3-responsive" style="max-width:75em; display:block; margin-left:auto; margin-right:auto; margin-top:0.5rem; padding:0.5rem; padding-bottom:1rem; ">
+  <div class="w3-card-4">
+    <div class="w3-container w3-blue">
+      <h3>{{subject_name}}的体重简报</h3>
+    </div>
+    <div class="w3-container w3-center w3-padding-16">
+      <p style="margin-bottom:0px;margin-top:1.5rem;">{{latest_record_time}}</p>
+      <p style="font-size:7vh;font-weight:bold;margin:0px;margin-top:-0.3rem;">{{today_weight}}公斤</p>  
+      <p style="margin-top:-0.3rem;margin-bottom:1.5rem;">备注：{{remark}}</p>
+      <iframe id="iframe-linechart" style="width:100%;height:35vh;margin-bottom:0rem;z-index:50;position:relative;" frameBorder="0" src="" scrolling="no" ></iframe>
+      <div class="w3-container w3-center">        
+        <form style="margin-bottom:2rem;z-index:100;position:relative;">
+          跨度:
+          <input id="days-radio-button-0" type="radio" name="days-radio-button" onclick="fillLinearChart(14);" >
+          <label for="days-radio-button-0">2周</label>
+          <input id="days-radio-button-1" type="radio" name="days-radio-button" onclick="fillLinearChart(91);" checked>
+          <label for="days-radio-button-1">3月</label>
+          <input id="days-radio-button-2" class="w3-raio" type="radio" name="days-radio-button" onclick="fillLinearChart(185);" >
+          <label for="days-radio-button-2">6月</label>
+          <input id="days-radio-button-3" class="w3-rdio" type="radio" name="days-radio-button" onclick="fillLinearChart(365)" >
+          <label for="days-radio-button-3">1年</label>
+          <input id="days-radio-button-4" class="w3-rdio" type="radio" name="days-radio-button" onclick="fillLinearChart(730)" >
+          <label for="days-radio-button-4">2年</label>
+        </form>
+      </div>
+    	<table class="w3-table w3-striped w3-bordered w3-hoverable">
+    	<tr class="w3-blue"><th>时间跨度</th><th>测量次数</th><th>平均体重</th><th>变动</th></tr>
+    	{%for i in range(0, weight_data|length)%} 
+    		<tr class="w3-hover-blue"> 
+    			<td class="w3-border">{{weight_data[i][0]}}</td> 
+    			<td class="w3-border">{{weight_data[i][1]}}</td>
+    			<td class="w3-border">{{weight_data[i][3]}}</td>
+    			<td class="w3-border"><b>{{weight_data[i][4]|safe}}</b></td>
+    		</tr>
+    	{%endfor%} 
+    	</table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="shortcut icon" href="//monitor.sz.lan/weight_manager/static/favicon.png">
+<link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
+<link rel="stylesheet" href="//monitor.sz.lan/resources/font-awesome.min.css">
+<script src="//monitor.sz.lan/resources/monitor.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<html>
+<head><title>体重管理器-录入[{{subject_name}}]</title>
+<script>
+window.onload = function() { logUserInteractions('[weight-manager-record] load');  };
+window.onunload = function() { logUserInteractions('[weight-manager-record] unload'); };
+</script>
+</head>
+<body>
+
+<div class="w3-container w3-padding-16" style="max-width: 50em; margin-top:20vh; display: block; margin-left: auto; margin-right: auto;">
+  <div class="w3-card-4">
+    <div class="w3-container w3-blue">
+      <h3>{{subject_name}}您好，</h3>
+    </div>
+      
+  	<form id="weight-form" class="w3-container" action="//monitor.sz.lan/weight_manager/" method="get">
+  	<p>
+  	  <label class="w3-text-blue"><b>体重（公斤）：</b></label>
+  	  <input type="hidden" name="subject_name" value="{{subject_name}}">
+  	  <input class="w3-input w3-border w3-light-grey" type="text" id="weight_today" name="weight_today">
+  	  <label class="w3-text-blue"><b>备注：</b></label>
+  	  <input class="w3-input w3-border w3-light-grey" type="text" id="remark" name="remark">
+  	  </p>
+  	  <button class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;" type="submit" onclick="logUserInteractions('[weight-manager-record] submit weight data'); window.location.replace('//monitor.sz.lan/weight_manager/show/?subject_name={{subject_name}});">提交体重数据</button>
+  	  <input class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="logUserInteractions('[weight-manager-record] directly visit show page'); window.location.href='//monitor.sz.lan/weight_manager/show/?subject_name={{subject_name}}';"value="查看体重简报" />
+  	</form><!--<div class="w3-right-align"><p>注：重复录入以最后一次为准。</p></div>-->
+  </div>
+</div>
+</body>
+</html>

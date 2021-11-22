@@ -1,0 +1,159 @@
+<meta name="viewport" content="width=device-width">
+<link rel="shortcut icon" href="//monitor.sz.lan/dashboard/static/favicon.png">
+<link rel="stylesheet" href="//monitor.sz.lan/resources/monitor.css">
+<script src="//monitor.sz.lan/resources/moment.js-2.18.1/moment.min.js"></script>
+<script src="//monitor.sz.lan/resources/chart.js-2.8.0/Chart.min.js"></script>
+<script src="//monitor.sz.lan/resources/chart.js-2.8.0/Chart.bundle.js"></script>
+<script src="//monitor.sz.lan/resources/monitor.js"></script>
+
+<html>
+	<head><title>1103监控-折线图</title>
+   <style>
+   .chart-container {
+    width: {{chart_width}}vw;
+   }
+   </style>
+   </head>
+
+<body>
+
+<div class="chart-container" style="width:100%; height:96vh;">
+    <canvas id="myChart"></canvas>
+</div>
+<p>First entry at: {{oldest_time_string}}</p>
+
+<script>
+
+// ========== code used to create a vertical line while hovering on the chart. ==========
+Chart.defaults.LineWithLine = Chart.defaults.line;
+Chart.controllers.LineWithLine = Chart.controllers.line.extend({
+   draw: function(ease) {
+      Chart.controllers.line.prototype.draw.call(this, ease);
+
+      if (this.chart.tooltip._active && this.chart.tooltip._active.length) {
+         var activePoint = this.chart.tooltip._active[0],
+             ctx = this.chart.ctx,
+             x = activePoint.tooltipPosition().x,
+             topY = this.chart.legend.bottom,
+             bottomY = this.chart.chartArea.bottom;
+
+         // draw line
+         ctx.save();
+         ctx.beginPath();
+         ctx.moveTo(x, topY);
+         ctx.lineTo(x, bottomY);
+         ctx.lineWidth = 0.5;
+         ctx.strokeStyle = '#A6A6A6';
+         ctx.stroke();
+         ctx.restore();
+      }
+   }
+});
+// Note: "type" property of myChart needs to be set to "LineWithLine" to make it work
+// ========== code used to create a vertical line while hovering on the chart. ==========
+var remarks = [{{remark_string|safe}}];
+var ctx = document.getElementById('myChart').getContext('2d');
+var myChart = new Chart(ctx, {
+    type: 'LineWithLine',   // Originally, it is 'line' here
+    data: {
+        labels: [{{ times_string | safe }}],
+        datasets: [{%for i in range(0, readings_strings|length)%} 
+        {
+            label: '({{sampling_points_cn[i]}})',
+         //   yAxisID: 'A',
+            data: [{{readings_strings[i]}}],
+            fill: false,
+            borderColor: getRandomColor({{i}}),
+            borderWidth: 1.5,
+            pointRadius: 0.85
+        },
+      	{%endfor%}]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        spanGaps: true,
+        legend: {
+          display: {{legend_display}}
+        },
+        title: {
+          display: false,
+          text: '温度监控'
+        },
+        scales: {
+            xAxes: [{
+                type: "time",
+                time: { 
+                  parser: 'YYYY-MM-DD HH:mm',
+                  displayFormats: {
+                            'minute': 'MM-DD HH:mm',    // These lines tell chart.js the string format to be used if it thinks the scale of x-Axis is minute/hour/day
+                            'hour': 'MM-DD HH:mm',
+                            'day': 'YY-MM-DD',
+                            'month': 'YYYY-MM'
+                        },
+                  tooltipFormat: 'YYYY-MM-DD HH:mm'
+                },
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: ''
+                }
+     
+            }],
+            yAxes: [{
+                ticks: {
+                    beginAtZero: false
+                }
+            }]
+        },
+        tooltips: {
+       /*     callbacks: {
+              label: function(tooltipItems, data) { 
+                  return data.datasets[tooltipItem.datasetIndex].label + tooltipItems.yLabel + "{{readings_unit}}";
+              }
+            },*/
+            callbacks: {
+                label: function(tooltipItem, data) {
+                    var label = data.datasets[tooltipItem.datasetIndex].label || '';
+
+                    if (label) {
+                        label += ': ';
+                    }
+                    label += (tooltipItem.yLabel) + "{{readings_unit}} (" + remarks[tooltipItem.index] + ")";
+                    return label;
+                }
+            },
+            mode: 'index',
+            intersect: false
+        }
+    }
+});
+
+function getRandomColor(i) {
+    var colors = ["#f44336", //w3-red
+                  "#2196f3", //w3-blue
+                  "#4caf50", //w3-green
+                  "#ffc107", //w3-amber
+                  "#3f51b5", //w3-indigo
+                  "#8bc34a", //w3-light-green
+                  "#e91e63", //w3-pink
+                  "#9c27b0", //w3-purple
+                  "#ff5722", //w3-deep-orange
+                  "#009688", //w3-teal
+                  "#673ab7", //w3-deep-purple
+                  "#795548", //w3-brown
+                  "#00bcd4", //w3-cyan
+                  "#616161", //w3-dark-grey
+                  ];
+
+    if (i < colors.length)
+      return colors[i];
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+</script>
+</body>
