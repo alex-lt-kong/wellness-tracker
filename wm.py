@@ -29,7 +29,7 @@ import time
 
 
 app = Flask(__name__)
-app.secret_key = b'?YEChzGK`V:zS6R;=kej>IiK%vV23Dq|Wm>}~G+!~K.k_"(X|o'
+app.secret_key = b''
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -50,10 +50,10 @@ plots_path = f'{app_path}/plots'
 app_name = 'weight_manager'
 relative_url = f'../{app_name}'
 
-db_url = 'localhost'
-db_username = 'biological_data'
-db_password = 'aPdji21fjiI'
-db_name = 'biological_data'
+db_url = ''
+db_username = ''
+db_password = ''
+db_name = ''
 
 
 def get_average_weight(username: str, days: int):
@@ -523,6 +523,19 @@ def main():
     ap.add_argument('--debug', dest='debug', action='store_true')
     args = vars(ap.parse_args())
     debug_mode = args['debug']
+
+    with open(settings_path, 'r') as json_file:
+        json_str = json_file.read()
+        json_data = json.loads(json_str)
+
+    global db_url, db_username, db_password, db_username
+    global app
+    db_url = json_data['db']['url']
+    db_username = json_data['db']['username']
+    db_password = json_data['db']['password']
+    db_username = json_data['db']['username']
+
+    app.secret_key = json_data['app']['secret_key']
 
     logging.basicConfig(
         filename='/var/log/mamsds/weight-manager.log',
