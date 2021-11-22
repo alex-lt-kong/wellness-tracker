@@ -142,7 +142,7 @@ def login():
 
         session[f'{app_name}'] = {}
         session[f'{app_name}']['username'] = username
-
+        print(session)
         return redirect(f'{relative_url}/')
 
     return render_template('login.html', err_msg='')
@@ -188,9 +188,34 @@ def index():
     return redirect(f'{relative_url}/summary/')
 
 
+@app.route('/get-weight-data/', methods=['GET'])
+def get_weight_data():
+    if f'{app_name}' in session and 'username' in session[f'{app_name}']:
+        username = session[f'{app_name}']['username']
+    else:
+        return Response('用户未登录', 401)
+
+    try:
+        user = str(request.args.get('user'))
+        value_type = str(request.args.get('value_type'))
+    except Exception as ex:
+        return Response('参数错误', 400)
+    sql = """
+        SELECT `id`, `record_time`, `value`, `value_type`
+        FROM `weights` WHERE `username` = %s AND `value_type` = %s"""
+    conn = pymysql.connect(db_url, db_username, db_password, db_name)
+    conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
+    cursor = conn.cursor()
+    cursor.execute(sql, (current_time, username))
+    results = cursor.fetchall()
+    cursor.close()
+    print(results)
+
+
 @app.route('/summary/', methods=['GET'])
 def summary():
 
+    print(session)
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
         username = session[f'{app_name}']['username']
     else:
@@ -529,14 +554,13 @@ def main():
         json_data = json.loads(json_str)
 
     global db_url, db_username, db_password, db_username
-    global app
     db_url = json_data['db']['url']
     db_username = json_data['db']['username']
     db_password = json_data['db']['password']
     db_username = json_data['db']['username']
 
     app.secret_key = json_data['app']['secret_key']
-
+    print(app.secret_key)
     logging.basicConfig(
         filename='/var/log/mamsds/weight-manager.log',
         level=logging.DEBUG if debug_mode else logging.INFO,
