@@ -183,15 +183,15 @@ def index():
         sql = 'UPDATE `weights` SET `value` = %s, `remark` = %s WHERE `record_time` = %s AND `username` = %s'
         cursor.execute(sql, (weight_today, remark, current_time, username))
     else:
-        sql = 'INSERT INTO `weights` (`record_time`, `username`, `value`, `remark`) VALUES (%s, %s, %s, %s)'
-        cursor.execute(sql, (current_time, username, weight_today, remark))
+        sql = 'INSERT INTO `weights` (`record_time`, `username`, `value`, `value_type`, `remark`) VALUES (%s, %s, %s, %s, %s)'
+        cursor.execute(sql, (current_time, username, weight_today, 'weight', remark))
     cursor.close()
 
     return redirect(f'{relative_url}/summary/')
 
 
-@app.route('/get-weight-data/', methods=['GET'])
-def get_weight_data():
+@app.route('/get-data/', methods=['GET'])
+def get_data():
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
         username = session[f'{app_name}']['username']
     else:
@@ -223,7 +223,6 @@ def get_weight_data():
     if span < 1:
         span = 1
     df.loc[:,'value_ema'] = df['value_raw'].ewm(span=span, adjust=False).mean().round(2)
-    print(df)
     record_times, values_raw, values_ema, remarks = [], [], [], []
     for index, row in df.iterrows():
         record_times.append(row['record_time'].strftime("%Y-%m-%d %H:%M:%S"))
@@ -231,12 +230,12 @@ def get_weight_data():
         values_ema.append(row['value_ema'])
         remarks.append(row['remark'])
 
-    return json.dumps({
+    return jsonify({
         "record_times": record_times,
         "values_raw": values_raw,
         "values_ema": values_ema,
         "remarks": remarks
-    }, ensure_ascii=False)
+    })
 
 @app.route('/summary/', methods=['GET'])
 def summary():
@@ -277,13 +276,17 @@ def summary():
         attendance_rate = '{:.0f}%'.format(entry_count * 100 / denominators[i])
         average_weight = '{:.1f}'.format(average_weight)
         weight_data.append([denominators_names[i], entry_count, attendance_rate, average_weight, change_html])
+    kwargs = {
+        'app_address': app_address,
+        'mode': 'dev' if debug_mode else 'prod'
+        }
 
     return render_template('summary.html',
                            username=username,
                            today_weight=today_weight,
                            remark=remark,
                            latest_record_time=latest_record_time,
-                           weight_data=weight_data)
+                           weight_data=weight_data, **kwargs)
 
 
 @app.route('/chart/', methods=['GET'])

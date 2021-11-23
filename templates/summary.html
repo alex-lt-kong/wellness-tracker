@@ -2,7 +2,7 @@
 <link rel="shortcut icon" href="//monitor.sz.lan/weight_manager/static/favicon.png">
 <link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
 <script src="//monitor.sz.lan/resources/monitor.js"></script>
-<script src="//monitor.sz.lan/resources/jquery-3.5.1.min.js"></script>
+<script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <html>
 <head><title>简报[{{username}}] - 体重管理器</title></head>
@@ -34,20 +34,7 @@
   	<hr style="margin-top:0px; margin-left:2em; margin-right:2em;">
   	<div class="w3-panel w3-leftbar w3-border-blue" style="margin-bottom:0px"><h5>历史数据</h5></div>
     <div class="w3-container w3-center w3-padding-16">    
-    <iframe id="iframe-linechart" style="width:100%;height:35vh;margin-bottom:0rem;z-index:50;position:relative;" frameBorder="0" src="" scrolling="no" >折线图载入中...</iframe>
-	  <form style="margin-bottom:2rem;z-index:100;position:relative;">
-      跨度:
-      <input id="days-radio-button-0" type="radio" name="days-radio-button" onclick="updateExternalResources(30);" >
-      <label for="days-radio-button-0">1月</label>
-      <input id="days-radio-button-1" type="radio" name="days-radio-button" onclick="updateExternalResources(120);" checked>
-      <label for="days-radio-button-1">4月</label>
-      <input id="days-radio-button-2" class="w3-raio" type="radio" name="days-radio-button" onclick="updateExternalResources(365);" >
-      <label for="days-radio-button-2">1年</label>
-      <input id="days-radio-button-3" class="w3-rdio" type="radio" name="days-radio-button" onclick="updateExternalResources(730);" >
-      <label for="days-radio-button-3">2年</label>
-      <input id="days-radio-button-4" class="w3-rdio" type="radio" name="days-radio-button" onclick="updateExternalResources(1461);" >
-      <label for="days-radio-button-4">4年</label>
-    </form>
+    <iframe id="iframe-linechart" src="{{app_address}}/chart/" style="width:100%;height:35vh;" frameBorder="0" src="" scrolling="no" >折线图载入中...</iframe>
   	<table class="w3-table w3-striped w3-bordered w3-hoverable">
   	<tr class="w3-blue"><th>时间跨度</th><th>测量次数</th><th>平均体重</th><th>变动</th></tr>
   	{%for i in range(0, weight_data|length)%} 
@@ -84,7 +71,6 @@
 window.onload = function() {
   logUserActivity('[weight-manager/summary] load', '{{username}}');
   $("#data-analysis-content").load('../generate_statistics/?days=3650');
-  updateExternalResources(120);
   randomizeImageLinks();
 };
 window.onunload = function() { logUserActivity('[weight-manager/summary] unload', '{{username}}'); };
@@ -94,19 +80,11 @@ function logout() {
   window.location.replace('../logout/');
 }
 
-function updateExternalResources(days) {
-  // $.get('https://monitor.sz.lan/weight_manager/generate_statistics/?days=3650');
-  // Just load them all! The issue for loading just the selected interval is that
-  // if users would like to check the statistics of the entire period, he has to
-  // switch the interval manually
-  logUserActivity('[weight-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
-  $("#prediction-content").load('../prediction/?days=' + days.toString());   
-  $("#iframe-linechart").attr('src', "../chart/?days=" + days.toString());
-}
 function randomizeImageLinks() { 
   $("#log-return-img").attr("src", $('#log-return-img').attr('src') + "&rand=" + Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000);
   $("#qq-plot-img").attr("src", $('#qq-plot-img').attr('src') + "&rand=" + Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000);
   $("#histogram-img").attr("src", $('#histogram-img').attr('src') + "&rand=" + Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000);
 }
+$("#prediction-content").load('../prediction/?days=360');
 </script>
 </html>
