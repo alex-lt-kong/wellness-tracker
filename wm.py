@@ -95,28 +95,36 @@ def login():
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
         return redirect(f'{app_address}/')
 
+    kwargs = {
+        'app_address': app_address,
+        'mode': 'dev' if debug_mode else 'prod'
+    }
     if request.method == 'POST':
 
         username = request.form['username']
+        kwargs['username'] = username
         try:
             with open(users_path, 'r') as json_file:
                 json_str = json_file.read()
                 json_data = json.loads(json_str)
         except Exception as ex:
-            return render_template('login.html', err_msg=f'错误：{str(ex)}')
+            kwargs['err_msg'] = f'错误：{str(ex)}'
+            return render_template('login.html', **kwargs)
+
         if request.form['username'] not in json_data['users']:
-            return render_template('login.html',
-                                   err_msg=f'错误：用户{username}不存在')
+            kwargs['err_msg'] = f'错误：用户{username}不存在'
+            return render_template('login.html', **kwargs)
         if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
                 json_data['users'][username]):
-            return render_template('login.html', err_msg='错误：密码错误')
+            kwargs['err_msg'] = '错误：密码错误'
+            return render_template('login.html', **kwargs)
 
         session[f'{app_name}'] = {}
         session[f'{app_name}']['username'] = username
-        print(session)
         return redirect(f'{app_address}/')
 
-    return render_template('login.html', err_msg='')
+
+    return render_template('login.html', **kwargs)
 
 
 @app.route('/', methods=['GET'])
@@ -168,7 +176,6 @@ def get_latest_data():
     else:
         return Response('用户未登录', 401)
 
-    db_error = False
     try:
         conn = pymysql.connect(db_url, db_username, db_password, db_name)
         conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
@@ -183,13 +190,10 @@ def get_latest_data():
         results = cursor.fetchall()
     except Exception as ex:
         logging.error('Database operation error: {ex}')
-        db_error = True
+        return Response('数据库错误', 500)
     finally:
         cursor.close()
-        conn.close()
-    
-    if db_error:
-        return Response('数据库错误', 500)
+        conn.close()        
 
     if len(results) == 1:
         return jsonify({
@@ -230,7 +234,7 @@ def get_data():
     FROM `weights`
     WHERE `username` = :username AND
           (`record_time` >= (DATE(NOW()) - INTERVAL :days DAY))
-    ORDER BY `record_time` DESC
+    ORDER BY `record_time` ASC
     ''')
     df = pd.read_sql(sql,
                     con=db_conn,
@@ -296,7 +300,6 @@ def generate_stat_table(username):
 @app.route('/summary/', methods=['GET'])
 def summary():
 
-    print(session)
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
         username = session[f'{app_name}']['username']
     else:
