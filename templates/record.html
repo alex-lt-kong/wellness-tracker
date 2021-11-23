@@ -6,6 +6,7 @@
 <script src="//monitor.sz.lan/resources/monitor.js"></script>
 <script src="//monitor.sz.lan/resources/jquery-3.5.1.min.js"></script>
 
+
 <html>
 <head><title>体重管理器-录入[{{username}}]</title>
   <script>
@@ -30,10 +31,6 @@
     	  <label class="w3-text-blue"><b>备注</b></label>
     	  <input class="w3-input w3-border w3-light-grey" type="text" id="remark" name="remark">
     	</p>
-    	<p>
-    	  <label class="w3-text-blue"><b>上次预测的体重</b></label>  
-    	  <input id="prediction-content" class="w3-input w3-border w3-light-grey" type="text" name="prediction" readonly>
-    	</p>
     	<button class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;" type="submit" onclick="submitWeightData();">提交体重数据</button>
     	<input class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看体重数据" />
   	</form>
@@ -56,11 +53,7 @@ function viewSummaryPage() {
   logUserActivity('[weight-manager/record]visit summary page', '{{username}}');
   window.location.href='../weight_manager/summary/';
 }
-function updatePrediction(days) {
-  //$("#prediction-content").load('../weight_manager/prediction/?days=' + days.toString());
-  $.get('../weight_manager/prediction/?days=' + days.toString(), function(data) {
-    $('#prediction-content').val(data.replace(/<[^>]*>?/gm, ''));
-});
-}
+
+
 </script>
 </html>
