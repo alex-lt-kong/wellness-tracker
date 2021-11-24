@@ -24,6 +24,8 @@ import time
 
 app = Flask(__name__)
 app.secret_key = b''
+app.config['JSON_AS_ASCII'] = False
+app.config['JSON_SORT_KEYS'] = False
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -37,14 +39,12 @@ CORS(app)
 # This necessary for javascript to access a telemetry link without opening it:
 # https://stackoverflow.com/questions/22181384/javascript-no-access-control-allow-origin-header-is-present-on-the-requested
 stop_signal = False
+
 app_address = ''
 app_path = '/root/bin/weight-manager'
 debug_mode = False
+settings = {}
 settings_path = f'{app_path}/settings.json'
-submission_diff_tol = 0
-# If the interval between two submissions are not larger than this number of
-# minutes, the second submission will be considered the same as the first
-# submission and overwrite the first submission.
 users_path = f'{app_path}/users.json'
 plots_path = f'{app_path}/plots'
 app_name = 'weight_manager'
@@ -56,7 +56,7 @@ db_password = ''
 db_name = ''
 
 
-def get_average_weight(username: str, days: int):
+def get_average_value(username: str, value_type: str, days: int):
 
     conn = pymysql.connect(db_url, db_username, db_password, db_name)
     cursor = conn.cursor()
@@ -64,8 +64,9 @@ def get_average_weight(username: str, days: int):
     SELECT COUNT(`value`), AVG(`value`)
     FROM `weights`
     WHERE (`record_time` between (NOW() - INTERVAL %s DAY ) and NOW()) AND
-         `username` = %s'''
-    cursor.execute(sql, (days, username))
+         `username` = %s AND
+         `value_type` = %s'''
+    cursor.execute(sql, (days, username, value_type))
     results = cursor.fetchall()
 
     if results is not None:
@@ -148,34 +149,16 @@ def index():
 
     return render_template('record.html', **kwargs)
 
-    try:
-        weight_today = float(request.args.get('weight_today'))
-        remark = request.args.get('remark')
-    except:
-        return('输入的不是数字！请重新输入！（注意检查中英文标点）')
 
-    current_time = dt.datetime.now()
-    if current_time.minute < 30:
-        current_time = current_time.replace(microsecond=0, second=0, minute=0)
+@app.route('/get-available-items/', methods=['GET'])
+def get_available_items():
+    
+    if f'{app_name}' in session and 'username' in session[f'{app_name}']:
+        username = session[f'{app_name}']['username']
     else:
-        current_time = current_time.replace(microsecond=0, second=0, minute=30)
+        return Response('用户未登录', 401)
 
-    conn = pymysql.connect(db_url, db_username, db_password, db_name)
-    conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
-    cursor = conn.cursor()
-    sql = 'SELECT `id`, `record_time`, `value` FROM `weights` WHERE `record_time` = %s AND `username` = %s'
-    cursor.execute(sql, (current_time, username))
-    results = cursor.fetchall()
-    if len(results) > 0:
-        sql = 'UPDATE `weights` SET `value` = %s, `remark` = %s WHERE `record_time` = %s AND `username` = %s'
-        cursor.execute(sql, (weight_today, remark, current_time, username))
-    else:
-        sql = 'INSERT INTO `weights` (`record_time`, `username`, `value`, `value_type`, `remark`) VALUES (%s, %s, %s, %s, %s)'
-        cursor.execute(sql, (current_time, username, weight_today, 'weight', remark))
-    cursor.close()
-
-    return redirect(f'{app_address}/summary/')
-
+    return {"data": settings['items']}
 
 
 @app.route('/submit-data/', methods=['POST'])
@@ -192,8 +175,13 @@ def submit_data():
         remark = str(request.form['remark'])
     except Exception as ex:
         return Response('参数错误', 400)
+    if value_type not in settings['items'].keys():
+        return Response('value_type不在允许列表内', 400)
 
-    submission_time = dt.datetime.now() - dt.timedelta(seconds=submission_diff_tol)
+    submission_time = dt.datetime.now() - dt.timedelta(seconds=json_data['app']['submission_diff_tol'])
+    # If the interval between two submissions are not larger than this number of
+    # minutes, the second submission will be considered the same as the first
+    # submission and overwrite the first submission.
 
     try:
         conn = pymysql.connect(db_url, db_username, db_password, db_name)
@@ -245,6 +233,10 @@ def get_latest_data():
         return Response('用户未登录', 401)
 
     try:
+        value_type = str(request.args.get('value_type'))
+    except Exception as ex:
+        return Response('参数错误', 400)
+    try:
         conn = pymysql.connect(db_url, db_username, db_password, db_name)
         conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
         cursor = conn.cursor()
@@ -254,7 +246,7 @@ def get_latest_data():
             WHERE `username` = %s AND `value_type` = %s
             ORDER BY `record_time` DESC
             LIMIT 1"""
-        cursor.execute(sql, (username, "weight"))
+        cursor.execute(sql, (username, value_type))
         results = cursor.fetchall()
     except Exception as ex:
         logging.error('Database operation error: {ex}')
@@ -301,12 +293,17 @@ def get_data():
     SELECT `record_time`, `value` AS value_raw, `remark`
     FROM `weights`
     WHERE `username` = :username AND
+          `value_type` = :value_type AND
           (`record_time` >= (DATE(NOW()) - INTERVAL :days DAY))
     ORDER BY `record_time` ASC
     ''')
     df = pd.read_sql(sql,
                     con=db_conn,
-                    params={'username': username, 'days': days})
+                    params={
+                        'username': username, 
+                        'value_type': value_type,
+                        'days': days
+                    })
 
     span =  int(df.shape[0] / 5)
     if span < 1:
@@ -327,20 +324,20 @@ def get_data():
     })
 
 
-def generate_stat_table(username):
+def generate_stat_table(username, value_type):
 
     table_html = """
     <table class="w3-table w3-striped w3-bordered w3-hoverable">
       <tr class="w3-blue">
-        <th>时间跨度</th><th>测量次数</th><th>平均体重</th><th>变动</th>
+        <th>时间跨度</th><th>测量次数</th><th>平均值</th><th>变动</th>
       </tr>
     """
 
-    denominators = [7, 30, 120, 365, 730, 1461]
-    denominators_names = ['1周', '1月', '4月', '1年', '2年', '4年']
-    _, today_weight = get_average_weight(username, 1)
+    denominators = [7, 30, 120, 365, 730, 1826, 3652]
+    denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
+    _, today_weight = get_average_value(username, value_type, 1)
     for i in range(len(denominators)):
-        entry_count, average_weight = get_average_weight(username, denominators[i])
+        entry_count, average_weight = get_average_value(username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
@@ -373,11 +370,17 @@ def summary():
     else:
         return redirect(f'{app_address}/login/')
 
+    try:
+        value_type = str(request.args.get('value_type'))
+    except Exception as ex:
+        return Response('参数错误', 400)
+
     kwargs = {
         'app_address': app_address,
         'mode': 'dev' if debug_mode else 'prod',
-        'stat_table': generate_stat_table(username),
-        'username': username
+        'stat_table': generate_stat_table(username, value_type),
+        'username': username,
+        'value_type': value_type
         }
 
     return render_template('summary.html', **kwargs)
@@ -440,20 +443,19 @@ def main():
     global debug_mode
     debug_mode = args['debug']
 
+    global db_url, db_username, db_password, db_name
+    global app_address, settings
     with open(settings_path, 'r') as json_file:
         json_str = json_file.read()
-        json_data = json.loads(json_str)
+        settings = json.loads(json_str)
 
-    global db_url, db_username, db_password, db_name
-    global app_address, submission_diff_tol
-    db_url = json_data['db']['url']
-    db_username = json_data['db']['username']
-    db_password = json_data['db']['password']
-    db_name = json_data['db']['name']
+    db_url = settings['db']['url']
+    db_username = settings['db']['username']
+    db_password = settings['db']['password']
+    db_name = settings['db']['name']
 
-    app.secret_key = json_data['app']['secret_key']
-    app_address = json_data['app']['app_address']
-    submission_diff_tol = json_data['app']['submission_diff_tol']
+    app.secret_key = settings['app']['secret_key']
+    app_address = settings['app']['app_address']
     # secret_key must be the same if the server is shared by more than one service!
     logging.basicConfig(
         filename='/var/log/mamsds/weight-manager.log',
@@ -467,7 +469,7 @@ def main():
     if debug_mode is True:
         print('Running in debug mode')
         logging.info('Running in debug mode')
-        print(json_data)
+        print(settings)
     else:
         logging.info('Running in production mode')
 

@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="//monitor.sz.lan/resources/font-awesome.min.css">
 <script src="//monitor.sz.lan/resources/monitor.js"></script>
 <script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
+<script src="{{app_address}}/static/util.js"></script>
 
 <html>
 <head><title>体重管理器-录入[{{username}}]</title>
@@ -22,7 +23,9 @@
     </div>  
     <div class="w3-container">
     	<p>
-    	  <label class="w3-text-blue"><b>体重（公斤）</b></label>
+    	  <label class="w3-text-blue"><b>记录</b></label>
+        <select id="select-item" class="w3-select w3-text-blue w3-border" style="width:4em; font-weight:bold; background-color: #FFFFFF;">
+        </select>
     	  <input type="hidden" name="username" value="{{username}}">
     	  <input id="input-value" class="w3-input w3-border w3-light-grey" type="number">
     	</p>
@@ -30,14 +33,33 @@
     	  <label class="w3-text-blue"><b>备注</b></label>
     	  <input id="input-remark" class="w3-input w3-border w3-light-grey" type="text">
     	</p>
-    	<button id="button-submit" class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;">提交体重数据</button>
-    	<input class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看体重数据" />
+    	<button id="button-submit" class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;">提交[]数据</button>
+    	<input id="input-view" class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看[]数据" />
     </div>
   </div>
 </div>
 </body>
 
 <script>
+
+  var availableItems = {};
+  // This dict must match a pre-defined list on the server side.
+
+  function getAvailableItems() {
+    $.ajax({
+      url:"{{app_address}}/get-available-items/",
+      type:"get",
+      success: function(data, status){
+        availableItems = data['data'];
+        initSelectOptions("#select-item");
+        $("#select-item").change();
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+      }
+    });
+  }
+
 
   function logout() {
     logUserActivity('[weight-manager/record] logout', '{{username}}');
@@ -46,7 +68,7 @@
 
   function viewSummaryPage() {
     logUserActivity('[weight-manager/record]visit summary page', '{{username}}');
-    window.location.href='../weight_manager/summary/';
+    window.location.href='{{app_address}}/summary/?value_type=' + $('#select-item').val();
   }
 
   $("#button-submit").click(function() {
@@ -56,7 +78,7 @@
       data:{
         value: $("#input-value").val(),
         remark: $("#input-remark").val(),
-        value_type: "weight"
+        value_type: $('#select-item').val()
       },
       success: function(data, status){
         logUserActivity('[weight-manager/record] submit weight figure', '{{username}}');
@@ -67,7 +89,10 @@
       }
     });
   });
-
-
+  $('#select-item').on('change', function() {
+    $('#button-submit').text("提交" + availableItems[this.value].chinese_name + "数据")
+    $('#input-view').val("查看" + availableItems[this.value].chinese_name + "数据")
+  });
+  getAvailableItems();
 </script>
 </html>

@@ -6,8 +6,7 @@
 <script src="{{app_address}}/static/lib/luxon/2.1.1/luxon.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chartjs-adapter-luxon/1.1.0/chartjs-adapter-luxon.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
-
-<!--<script src="//monitor.sz.lan/resources/chart.js-2.8.0/Chart.bundle.js"></script>-->
+<script src="{{app_address}}/static/util.js"></script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <html>
@@ -16,12 +15,20 @@
 <div class="w3-container w3-responsive" style="max-width:110em; display:block; margin-left:auto; margin-right:auto; margin-top:0.5rem; padding:0.5rem; padding-bottom:1rem; ">
   <div class="w3-card-4">
     <div class="w3-container w3-blue">
-      <h3>{{username}}的体重数据<span class="w3-right" style="margin-bottom:1rem;font-size:0.65em;"><a href="#" onclick="logout();">退出</a></span></h3>
+      <h3>查看{{username}}的
+        <select id="select-item" class="w3-select w3-text-white" style="width:4em; background-color: #2196F3;">
+        </select>
+        <span class="w3-right" style="margin-bottom:1rem;font-size:0.65em;">
+          <a href="#" onclick="logout();">退出</a>
+        </span>
+      </h3>
     </div>
     <div class="w3-panel w3-leftbar w3-border-blue" style="margin-bottom:0px"><h5>概况</h5></div>
     <div class="w3-container w3-center w3-padding-8">
       <p id="last-record-time" style="margin-bottom:0px; margin-top:0px">载入中...</p>
-      <p style="font-size:7vh;font-weight:bold;margin:0px;margin-top:-0.3rem;"><span id="latest-weight">载入中...</span>公斤</p>
+      <p style="font-size:7vh;font-weight:bold;margin:0px;margin-top:-0.3rem;">
+        <span id="latest-weight"></span>&nbsp;<span id="latest-value-unit"></span>
+      </p>
       <p style="margin-top:-0.3rem;">备注：<span id="latest-remark">载入中...</span></p> 
   	</div>
   	<hr style="margin-top:0px; margin-left:2em; margin-right:2em;">
@@ -32,7 +39,6 @@
         <canvas id="myLineChart"></canvas>
       </div>
       <div style=" text-align: center;">
-        跨度:
         <input id="days-radio-button-0" class="w3-radio" type="radio" name="days-radio-button" onclick="updateLineChartData(30);" >
         <label for="days-radio-button-0">1月</label>
         <input id="days-radio-button-1" class="w3-radio" type="radio" name="days-radio-button" onclick="updateLineChartData(120);" checked>
@@ -41,8 +47,8 @@
         <label for="days-radio-button-2">1年</label>
         <input id="days-radio-button-3" class="w3-radio" type="radio" name="days-radio-button" onclick="updateLineChartData(730);" >
         <label for="days-radio-button-3">2年</label>
-        <input id="days-radio-button-4" class="w3-radio" type="radio" name="days-radio-button" onclick="updateLineChartData(1461);" >
-        <label for="days-radio-button-4">4年</label>
+        <input id="days-radio-button-4" class="w3-radio" type="radio" name="days-radio-button" onclick="updateLineChartData(3652);" >
+        <label for="days-radio-button-4">10年</label>
       </div>      
   	</div>
     <hr style="margin-top:0px; margin-left:2em; margin-right:2em;">
@@ -53,6 +59,7 @@
 </body>
 <script>
 
+  var availableItems = {}
   window.onload = function() {
     logUserActivity('[weight-manager/summary] load', '{{username}}');
   };
@@ -139,20 +146,40 @@
       }
     }
   });
-  $.get( "{{app_address}}/get-latest-data/?value_type=weight")
-  .done(function(data,status,xhr) {
-    $("#last-record-time").text(data['record_time']);
-    $("#latest-weight").text(data['value']);
-    $("#latest-remark").text(data['remark']);
-  })
-  .fail(function(jqXHR, textStatus, errorThrown) {
-    alert("错误：" + textStatus);
-  })
-  .always(function() {
+
+  $.ajax({
+    url:"{{app_address}}/get-latest-data/?value_type={{value_type}}",
+    type:"get",
+    success: function(data,status,xhr) {
+      $("#last-record-time").text(data['record_time']);
+      $("#latest-weight").text(data['value']);
+      $("#latest-remark").text(data['remark']);
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+    }
+  });
+
+  $.ajax({
+    url:"{{app_address}}/get-available-items/",
+    type:"get",
+    success: function(data, status){
+      availableItems = data['data'];
+      initSelectOptions("#select-item");    
+      $("#latest-value-unit").text(availableItems['{{value_type}}']['unit']);
+      $("#select-item").val('{{value_type}}');
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+    }
+  });
+
+  $('#select-item').on('change', function() {
+    window.location.href = "{{app_address}}/summary/?value_type=" + this.value;
   });
 
   function updateLineChartData(days) {
-    $.get( "{{app_address}}/get-data/?value_type=weight&days=" + days.toString())
+    $.get( "{{app_address}}/get-data/?value_type={{value_type}}&days=" + days.toString())
       .done(function(data,status,xhr) {
         myLineChart.data.labels = data['record_times'];
         myLineChart.data.datasets[0].data = (data["values_ema"]);
