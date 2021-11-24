@@ -41,9 +41,14 @@ app_address = ''
 app_path = '/root/bin/weight-manager'
 debug_mode = False
 settings_path = f'{app_path}/settings.json'
+submission_diff_tol = 0
+# If the interval between two submissions are not larger than this number of
+# minutes, the second submission will be considered the same as the first
+# submission and overwrite the first submission.
 users_path = f'{app_path}/users.json'
 plots_path = f'{app_path}/plots'
 app_name = 'weight_manager'
+
 
 db_url = ''
 db_username = ''
@@ -135,8 +140,13 @@ def index():
     else:
         return redirect(f'{app_address}/login/')
 
-    if 'weight_today' not in request.args:
-        return render_template('record.html', username=username)
+    kwargs = {
+        'app_address': app_address,
+        'mode': 'dev' if debug_mode else 'prod',
+        'username': username
+    }
+
+    return render_template('record.html', **kwargs)
 
     try:
         weight_today = float(request.args.get('weight_today'))
@@ -166,6 +176,64 @@ def index():
 
     return redirect(f'{app_address}/summary/')
 
+
+
+@app.route('/submit-data/', methods=['POST'])
+def submit_data():
+
+    if f'{app_name}' in session and 'username' in session[f'{app_name}']:
+        username = session[f'{app_name}']['username']
+    else:
+        return Response('用户未登录', 401)
+    
+    try:
+        value = float(request.form['value'])
+        value_type = str(request.form['value_type'])
+        remark = str(request.form['remark'])
+    except Exception as ex:
+        return Response('参数错误', 400)
+
+    submission_time = dt.datetime.now() - dt.timedelta(seconds=submission_diff_tol)
+
+    try:
+        conn = pymysql.connect(db_url, db_username, db_password, db_name)
+        conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
+        cursor = conn.cursor()
+        sql = """
+            SELECT `id`, `record_time`, `value`, `value_type`
+            FROM `weights`
+            WHERE `record_time` >= %s AND `username` = %s AND `value_type` = %s
+            ORDER BY `record_time` ASC
+        """
+        cursor.execute(sql, (submission_time, username, value_type))
+        results = cursor.fetchall()
+
+        if len(results) > 0:
+            sql = """
+                UPDATE `weights`
+                SET `record_time`= %s, `value` = %s, `remark` = %s
+                WHERE `record_time` = %s AND `username` = %s
+            """
+            cursor.execute(sql, (dt.datetime.now(), value, remark, results[-1][1], username))
+            # len(results) could be greater than 1 suppose server side changes
+            # the submission_diff_tol config item
+        else:
+            sql = """
+                INSERT INTO `weights` (`record_time`, `username`, `value`, `value_type`, `remark`)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(
+                sql,
+                (dt.datetime.now(), username, value, value_type, remark)
+            )
+    except Exception as ex:
+        logging.error(f'Database operation error: {ex}')
+        return Response('数据库错误', 500)
+    finally:
+        cursor.close()
+        conn.close()
+
+    return Response('数据写入成功', 200)
 
 @app.route('/get-latest-data/', methods=['GET'])
 def get_latest_data():
@@ -377,7 +445,7 @@ def main():
         json_data = json.loads(json_str)
 
     global db_url, db_username, db_password, db_name
-    global app_address
+    global app_address, submission_diff_tol
     db_url = json_data['db']['url']
     db_username = json_data['db']['username']
     db_password = json_data['db']['password']
@@ -385,8 +453,8 @@ def main():
 
     app.secret_key = json_data['app']['secret_key']
     app_address = json_data['app']['app_address']
+    submission_diff_tol = json_data['app']['submission_diff_tol']
     # secret_key must be the same if the server is shared by more than one service!
-    print(app.secret_key)
     logging.basicConfig(
         filename='/var/log/mamsds/weight-manager.log',
         level=logging.DEBUG if debug_mode else logging.INFO,
@@ -399,6 +467,7 @@ def main():
     if debug_mode is True:
         print('Running in debug mode')
         logging.info('Running in debug mode')
+        print(json_data)
     else:
         logging.info('Running in production mode')
 
