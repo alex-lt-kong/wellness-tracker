@@ -24,17 +24,17 @@
     <div class="w3-container">
     	<p>
     	  <label class="w3-text-blue"><b>记录</b></label>
-        <select id="select-item" class="w3-select w3-text-blue w3-border" style="width:4em; font-weight:bold; background-color: #FFFFFF;">
+        <select id="select-item" class="w3-select w3-text-blue w3-border" style="width:8em; font-weight:bold; background-color: #FFFFFF;">
         </select>
     	  <input type="hidden" name="username" value="{{username}}">
-    	  <input id="input-value" class="w3-input w3-border w3-light-grey" type="number">
+    	  <input id="input-value" class="w3-input w3-border w3-light-grey" placeholder="单位：" type="number">
     	</p>
     	<p>
     	  <label class="w3-text-blue"><b>备注</b></label>
     	  <input id="input-remark" class="w3-input w3-border w3-light-grey" type="text">
     	</p>
-    	<button id="button-submit" class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;">提交[]数据</button>
-    	<input id="input-view" class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看[]数据" />
+    	<button id="button-submit" class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;">提交数据</button>
+    	<input id="input-view" class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看数据" />
     </div>
   </div>
 </div>
@@ -90,8 +90,7 @@
     });
   });
   $('#select-item').on('change', function() {
-    $('#button-submit').text("提交" + availableItems[this.value].chinese_name + "数据")
-    $('#input-view').val("查看" + availableItems[this.value].chinese_name + "数据")
+    $("#input-value").attr("placeholder", "单位：" + availableItems[this.value].unit);
   });
   getAvailableItems();
 </script>

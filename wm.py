@@ -178,7 +178,7 @@ def submit_data():
     if value_type not in settings['items'].keys():
         return Response('value_type不在允许列表内', 400)
 
-    submission_time = dt.datetime.now() - dt.timedelta(seconds=json_data['app']['submission_diff_tol'])
+    submission_time = dt.datetime.now() - dt.timedelta(seconds=settings['app']['submission_diff_tol'])
     # If the interval between two submissions are not larger than this number of
     # minutes, the second submission will be considered the same as the first
     # submission and overwrite the first submission.
