@@ -3,10 +3,13 @@
 <link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
 <script src="//monitor.sz.lan/resources/monitor.js"></script>
 <script src="{{app_address}}/static/lib/chart.js/3.6.0/chart.{{mode}}.js"></script>
+<script src="{{app_address}}/static/lib/hammerjs/2.0.8/hammer.{{mode}}.js"></script>
+<script src="{{app_address}}/static/lib/chartjs-plugin-zoom/1.2.0/chartjs-plugin-zoom.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/luxon/2.1.1/luxon.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chartjs-adapter-luxon/1.1.0/chartjs-adapter-luxon.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
 <script src="{{app_address}}/static/util.js"></script>
+
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <html>
@@ -125,6 +128,25 @@
         }
       },
       plugins: {
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'xy',
+            threshold: 5,
+            modifierKey: 'ctrl'
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+              modifierKey: 'ctrl',
+            },
+            drag: {
+              enabled: false, // disabled for not working well on smartphones
+              modifierKey: 'ctrl'
+            },
+            mode: 'xy',
+          },
+        },
         legend: { display: false },
         tooltip: {
           callbacks: {
@@ -199,6 +221,7 @@
         myLineChart.data.datasets[0].data = (data["values_ema"]);
         myLineChart.data.datasets[1].data = (data["values_raw"]);
         remarks = data["remarks"];
+        myLineChart.resetZoom();
         myLineChart.update();
         logUserActivity('[weight-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
       })
