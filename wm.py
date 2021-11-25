@@ -45,7 +45,6 @@ app_path = '/root/bin/weight-manager'
 debug_mode = False
 settings = {}
 settings_path = f'{app_path}/settings.json'
-users_path = f'{app_path}/users.json'
 plots_path = f'{app_path}/plots'
 app_name = 'weight_manager'
 
@@ -109,19 +108,12 @@ def login():
 
         username = request.form['username']
         kwargs['username'] = username
-        try:
-            with open(users_path, 'r') as json_file:
-                json_str = json_file.read()
-                json_data = json.loads(json_str)
-        except Exception as ex:
-            kwargs['err_msg'] = f'错误：{str(ex)}'
-            return render_template('login.html', **kwargs)
 
-        if request.form['username'] not in json_data['users']:
+        if request.form['username'] not in settings['users']:
             kwargs['err_msg'] = f'错误：用户{username}不存在'
             return render_template('login.html', **kwargs)
         if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
-                json_data['users'][username]):
+                settings['users'][username]['password_hash']):
             kwargs['err_msg'] = '错误：密码错误'
             return render_template('login.html', **kwargs)
 
