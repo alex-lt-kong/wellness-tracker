@@ -96,6 +96,16 @@
         borderColor: "#f44336",
         borderWidth: 0.75,
         pointRadius: 0
+      },{
+        label: '参考值',
+        data: [],
+        fill: false,
+        tension: 0.1,
+        backgroundColor: '#4CAF50', // w3-green
+        borderColor: "#4CAF50",
+        borderWidth: 1.25,
+        borderDash: [10,5],
+        pointRadius: 0.5
       }]
     },
     options: {
@@ -220,13 +230,16 @@
         myLineChart.data.labels = data['record_times'];
         myLineChart.data.datasets[0].data = (data["values_ema"]);
         myLineChart.data.datasets[1].data = (data["values_raw"]);
+        if (data['reference_value'] != -1) {
+          myLineChart.data.datasets[2].data = Array(data['record_times'].length).fill(data['reference_value']);
+        }
         remarks = data["remarks"];
         myLineChart.resetZoom();
         myLineChart.update();
         logUserActivity('[weight-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
       })
       .fail(function(jqXHR, textStatus, errorThrown) {
-        alert("错误：" + textStatus);
+        alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
       })
       .always(function() {
       });

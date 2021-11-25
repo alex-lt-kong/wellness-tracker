@@ -308,11 +308,16 @@ def get_data():
         values_ema.append(row['value_ema'])
         remarks.append(row['remark'])
 
+    reference_value = -1
+    if settings['users'][username]['gender'] in settings['items'][value_type]['reference_value']:
+        reference_value = settings['items'][value_type]['reference_value'][settings['users'][username]['gender']]
+
     return jsonify({
         "record_times": record_times,
         "values_raw": values_raw,
         "values_ema": values_ema,
-        "remarks": remarks
+        "remarks": remarks,
+        "reference_value": reference_value
     })
 
 
