@@ -369,6 +369,9 @@ def summary():
 
     try:
         value_type = str(request.args.get('value_type'))
+        if value_type not in settings['items']:
+            raise ValueError('')
+            # the program will work even without this check
     except Exception as ex:
         return Response('参数错误', 400)
 
@@ -381,6 +384,7 @@ def summary():
         }
 
     return render_template('summary.html', **kwargs)
+
 
 def cleanup(*args):
 
