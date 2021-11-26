@@ -13,7 +13,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <html>
-<head><title>简报[{{username}}] - 健康管理器</title></head>
+<head><title>简报[{{username}}]-健康管理器</title></head>
 <body>
 <div class="w3-container w3-responsive" style="max-width:110em; display:block; margin-left:auto; margin-right:auto; margin-top:0.5rem; padding:0.5rem; padding-bottom:1rem; ">
   <div class="w3-card-4">
@@ -64,12 +64,12 @@
 
   var availableItems = {}
   window.onload = function() {
-    logUserActivity('[weight-manager/summary] load', '{{username}}');
+    logUserActivity('[health-manager/summary] load', '{{username}}');
   };
-  window.onunload = function() { logUserActivity('[weight-manager/summary] unload', '{{username}}'); };
+  window.onunload = function() { logUserActivity('[health-manager/summary] unload', '{{username}}'); };
 
   function logout() {
-    logUserActivity('[weight-manager/record] logout', '{{username}}');
+    logUserActivity('[health-manager/record] logout', '{{username}}');
     window.location.replace('../logout/');
   }
 
@@ -238,7 +238,7 @@
         remarks = data["remarks"];
         myLineChart.resetZoom();
         myLineChart.update();
-        logUserActivity('[weight-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
+        logUserActivity('[health-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
       })
       .fail(function(jqXHR, textStatus, errorThrown) {
         alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);

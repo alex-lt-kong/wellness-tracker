@@ -47,7 +47,7 @@ app_address = ''
 app_dir = os.path.dirname(os.path.realpath(__file__))
 debug_mode = False
 settings = {}
-app_name = 'weight_manager'
+app_name = 'health-manager'
 
 
 db_url = ''
@@ -74,11 +74,11 @@ def get_average_value(username: str, value_type: str, days: int):
     else:
         entry_count = 0
     if entry_count > 0:
-        average_weight = results[0][1]
+        get_average_value = results[0][1]
     else:
-        average_weight = np.nan
+        get_average_value = np.nan
 
-    return entry_count, average_weight
+    return entry_count, get_average_value
 
 
 @app.route('/logout/')
@@ -336,14 +336,14 @@ def generate_stat_table(username, value_type):
     denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
     _, today_weight = get_average_value(username, value_type, 1)
     for i in range(len(denominators)):
-        entry_count, average_weight = get_average_value(username, value_type, denominators[i])
+        entry_count, get_average_value = get_average_value(username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
-        table_html += f'<td class="w3-border">{average_weight:.1f}</td>'
+        table_html += f'<td class="w3-border">{get_average_value:.1f}</td>'
 
-        if average_weight != 0:
-            change = (today_weight - average_weight) * 1000 / average_weight
+        if get_average_value != 0:
+            change = (today_weight - get_average_value) * 1000 / get_average_value
             if change > 0:
                 change_html = '<span class="w3-text-red">{:+.0f}‰</span>'.format(change)
             elif change < 0:
