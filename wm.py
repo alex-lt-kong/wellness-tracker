@@ -9,6 +9,7 @@ from waitress import serve
 
 import argparse
 import datetime as dt
+import importlib
 import json
 import logging
 import numpy as np
@@ -40,12 +41,12 @@ CORS(app)
 # https://stackoverflow.com/questions/22181384/javascript-no-access-control-allow-origin-header-is-present-on-the-requested
 stop_signal = False
 
+# app_address: the app's address (including protocol and port) on the Internet
 app_address = ''
-app_path = '/root/bin/weight-manager'
+# app_dir: the app's real address on the filesystem
+app_dir = os.path.dirname(os.path.realpath(__file__))
 debug_mode = False
 settings = {}
-settings_path = f'{app_path}/settings.json'
-plots_path = f'{app_path}/plots'
 app_name = 'weight_manager'
 
 
@@ -54,17 +55,17 @@ db_username = ''
 db_password = ''
 db_name = ''
 
-
 def get_average_value(username: str, value_type: str, days: int):
 
     conn = pymysql.connect(db_url, db_username, db_password, db_name)
     cursor = conn.cursor()
     sql = '''
-    SELECT COUNT(`value`), AVG(`value`)
-    FROM `weights`
-    WHERE (`record_time` between (NOW() - INTERVAL %s DAY ) and NOW()) AND
-         `username` = %s AND
-         `value_type` = %s'''
+        SELECT COUNT(`value`), AVG(`value`)
+        FROM `user_data`
+        WHERE (`record_time` between (NOW() - INTERVAL %s DAY ) and NOW()) AND
+            `username` = %s AND
+            `value_type` = %s
+        '''
     cursor.execute(sql, (days, username, value_type))
     results = cursor.fetchall()
 
@@ -181,7 +182,7 @@ def submit_data():
         cursor = conn.cursor()
         sql = """
             SELECT `id`, `record_time`, `value`, `value_type`
-            FROM `weights`
+            FROM `user_data`
             WHERE `record_time` >= %s AND `username` = %s AND `value_type` = %s
             ORDER BY `record_time` ASC
         """
@@ -190,7 +191,7 @@ def submit_data():
 
         if len(results) > 0:
             sql = """
-                UPDATE `weights`
+                UPDATE `user_data`
                 SET `record_time`= %s, `value` = %s, `remark` = %s
                 WHERE `record_time` = %s AND `username` = %s
             """
@@ -199,7 +200,7 @@ def submit_data():
             # the submission_diff_tol config item
         else:
             sql = """
-                INSERT INTO `weights` (`record_time`, `username`, `value`, `value_type`, `remark`)
+                INSERT INTO `user_data` (`record_time`, `username`, `value`, `value_type`, `remark`)
                 VALUES (%s, %s, %s, %s, %s)
             """
             cursor.execute(
@@ -214,6 +215,7 @@ def submit_data():
         conn.close()
 
     return Response('数据写入成功', 200)
+
 
 @app.route('/get-latest-data/', methods=['GET'])
 def get_latest_data():
@@ -234,7 +236,7 @@ def get_latest_data():
         cursor = conn.cursor()
         sql = """
             SELECT `record_time`, `value`, `remark`
-            FROM `weights`
+            FROM `user_data`
             WHERE `username` = %s AND `value_type` = %s
             ORDER BY `record_time` DESC
             LIMIT 1"""
@@ -283,7 +285,7 @@ def get_data():
     db_conn = create_engine(db_conn_str)
     sql = text('''
     SELECT `record_time`, `value` AS value_raw, `remark`
-    FROM `weights`
+    FROM `user_data`
     WHERE `username` = :username AND
           `value_type` = :value_type AND
           (`record_time` >= (DATE(NOW()) - INTERVAL :days DAY))
@@ -394,48 +396,6 @@ def cleanup(*args):
     sys.exit(0)
 
 
-def send_notification_email(delay: int, from_name: str, subject: str, mainbody: str):
-
-    global stop_signal
-
-    logging.info('Wait for {} seconds before sending the email'.format(delay))
-    sec_count = 0
-    while sec_count < delay:
-        time.sleep(1)  # This delay has to be long enough to accommodate the startup time of pfSense.
-        sec_count += 1
-        if stop_signal:
-            return
-    logging.debug('Sending [{}] notification email'.format(subject))
-
-    try:
-        with open(settings_path, 'r') as json_file:
-            json_str = json_file.read()
-            json_data = json.loads(json_str)
-    except:
-        json_data = None
-        logging.error(sys.exc_info())
-
-    sender = json_data['email']['address']
-    password = json_data['email']['password']
-    receivers = ['admin@mamsds.net']
-
-    message = ('From: {} <{}>\n'
-                'To: Mamsds Admin Account <admin@mamsds.net>\n'
-                'Content-Type: text/html; charset="UTF-8"\n'
-                'Subject: {}\n'
-                '<meta http-equiv="Content-Type"  content="text/html charset=UTF-8" /><html><font size="2" color="black">{}</font></html>'.format(from_name, sender, subject, mainbody.replace('\n', '<br>')))
-
-    try:
-        smtpObj = smtplib.SMTP(host='server172.web-hosting.com', port=587)
-        smtpObj.starttls()
-        smtpObj.login(sender, password)
-        smtpObj.sendmail(sender, receivers, message.encode('utf-8'))
-        smtpObj.quit()
-        logging.debug("Email [{}] sent successfully".format(subject))
-    except:
-        logging.error("{}".format(sys.exc_info()))
-
-
 def main():
 
     ap = argparse.ArgumentParser()
@@ -446,7 +406,7 @@ def main():
 
     global db_url, db_username, db_password, db_name
     global app_address, settings
-    with open(settings_path, 'r') as json_file:
+    with open(os.path.join(app_dir, 'settings.json'), 'r') as json_file:
         json_str = json_file.read()
         settings = json.loads(json_str)
 
@@ -459,7 +419,7 @@ def main():
     app_address = settings['app']['app_address']
     # secret_key must be the same if the server is shared by more than one service!
     logging.basicConfig(
-        filename='/var/log/mamsds/weight-manager.log',
+        filename=settings['app']['log_path'],
         level=logging.DEBUG if debug_mode else logging.INFO,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
@@ -476,10 +436,19 @@ def main():
 
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
-    email_sender = threading.Thread(target=send_notification_email,
-                                    args=(0 if debug_mode else 600, 'weight manager notification service', 'weight manager started', f'weight manager is started at {start_time}'))
-    email_sender.start()
-    logging.info('weight manager server')
+
+    emailer = importlib.machinery.SourceFileLoader(
+                    'emailer',
+                    settings['email']['path']
+                ).load_module()
+    th_email = threading.Thread(target=emailer.send_service_start_notification,
+                                kwargs={'settings_path': os.path.join(app_dir, 'settings.json'),
+                                        'service_name': app_name,
+                                        'log_path': settings['app']['log_path'],
+                                        'delay': 0 if debug_mode else 300})
+    th_email.start()
+
+    logging.info('Health Manager started')
 
     serve(app, host='0.0.0.0', port=90)
 

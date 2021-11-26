@@ -8,7 +8,7 @@
 <script src="{{app_address}}/static/util.js"></script>
 
 <html>
-<head><title>体重管理器-录入[{{username}}]</title>
+<head><title>健康管理器-录入[{{username}}]</title>
   <script>
   window.onload = function() { logUserActivity('[weight-manager/record] load', '{{username}}'); };
   window.onunload = function() { logUserActivity('[weight-manager/record] unload', '{{username}}'); };
@@ -114,7 +114,7 @@
     } else {
       $('#warning-message').html("");
     }
-  }, 1000));
+  }, 500));
   getAvailableItems();
 </script>
 </html>
