@@ -10,8 +10,8 @@
 <html>
 <head><title>健康管理器-录入[{{username}}]</title>
   <script>
-  window.onload = function() { logUserActivity('[weight-manager/record] load', '{{username}}'); };
-  window.onunload = function() { logUserActivity('[weight-manager/record] unload', '{{username}}'); };
+  window.onload = function() { logUserActivity('[health-manager/record] load', '{{username}}'); };
+  window.onunload = function() { logUserActivity('[health-manager/record] unload', '{{username}}'); };
   </script>
 </head>
 <body>
@@ -64,12 +64,12 @@
 
 
   function logout() {
-    logUserActivity('[weight-manager/record] logout', '{{username}}');
+    logUserActivity('[health-manager/record] logout', '{{username}}');
     window.location.replace('../weight_manager/logout/');
   }
 
   function viewSummaryPage() {
-    logUserActivity('[weight-manager/record]visit summary page', '{{username}}');
+    logUserActivity('[health-manager/record]visit summary page', '{{username}}');
     window.location.href='{{app_address}}/summary/?value_type=' + $('#select-item').val();
   }
 
@@ -83,7 +83,7 @@
         value_type: $('#select-item').val()
       },
       success: function(data, status){
-        logUserActivity('[weight-manager/record] submit weight figure', '{{username}}');
+        logUserActivity('[health-manager/record] submit weight figure', '{{username}}');
         viewSummaryPage();
       },
       error: function(jqXHR, textStatus, errorThrown) {

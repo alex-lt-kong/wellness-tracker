@@ -2,8 +2,8 @@
 <link rel="shortcut icon" href="{{app_address}}/static/favicon.png">
 <link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
 <script src="//monitor.sz.lan/resources/monitor.js"></script>
-<script src="{{app_address}}/static/lib/chart.js/3.6.0/chart.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/hammerjs/2.0.8/hammer.{{mode}}.js"></script>
+<script src="{{app_address}}/static/lib/chart.js/3.6.0/chart.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chartjs-plugin-zoom/1.2.0/chartjs-plugin-zoom.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/luxon/2.1.1/luxon.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chartjs-adapter-luxon/1.1.0/chartjs-adapter-luxon.{{mode}}.js"></script>
@@ -141,7 +141,9 @@
         zoom: {
           pan: {
             enabled: true,
-            mode: 'xy',
+            mode: 'x',
+            // a compromise between desktop and mobile platforms
+            // mode: 'xy' does not work well on mobile platforms.
             threshold: 5,
             modifierKey: 'ctrl'
           },
@@ -154,7 +156,7 @@
               enabled: false, // disabled for not working well on smartphones
               modifierKey: 'ctrl'
             },
-            mode: 'xy',
+            mode: 'x',
           },
         },
         legend: { display: false },
