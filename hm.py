@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
-from flask import Flask, render_template, Response,request, redirect, session
+from flask import Response, request, redirect, session
 from flask import send_file, jsonify
-from flask_cors import CORS
 from hashlib import sha256
 from waitress import serve
 
 import argparse
 import datetime as dt
+import flask
 import importlib
 import json
 import logging
@@ -16,13 +16,12 @@ import os
 import pandas as pd
 import pymysql
 import signal
-import smtplib
 import sys
 import threading
 import time
 
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 app.secret_key = b''
 app.config['JSON_AS_ASCII'] = False
 app.config['JSON_SORT_KEYS'] = False
@@ -34,8 +33,6 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
 )
 
-
-CORS(app)
 # This necessary for javascript to access a telemetry link without opening it:
 # https://stackoverflow.com/questions/22181384/javascript-no-access-control-allow-origin-header-is-present-on-the-requested
 stop_signal = False
@@ -112,18 +109,18 @@ def login():
 
         if request.form['username'] not in settings['users']:
             kwargs['err_msg'] = f'错误：用户{username}不存在'
-            return render_template('login.html', **kwargs)
+            return flask.render_template('login.html', **kwargs)
         if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
                 settings['users'][username]['password_hash']):
             kwargs['err_msg'] = '错误：密码错误'
-            return render_template('login.html', **kwargs)
+            return flask.render_template('login.html', **kwargs)
 
         session[f'{app_name}'] = {}
         session[f'{app_name}']['username'] = username
         return redirect(f'{app_address}/')
 
 
-    return render_template('login.html', **kwargs)
+    return flask.render_template('login.html', **kwargs)
 
 
 @app.route('/', methods=['GET'])
@@ -141,7 +138,13 @@ def index():
         'telemetry_url': settings['app']['telemetry_url']
     }
 
-    return render_template('record.html', **kwargs)
+    response = flask.make_response(flask.render_template('record.html', **kwargs))
+    # render_template actually returns a string, just a string returned from
+    # a view is automatically wrapped in a response by Flask
+    # https://stackoverflow.com/questions/29464276/add-response-headers-to-flask-web-app
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 
 
 @app.route('/get-available-items/', methods=['GET'])
@@ -248,7 +251,7 @@ def get_latest_data():
         return Response('数据库错误', 500)
     finally:
         cursor.close()
-        conn.close()        
+        conn.close()
 
     if len(results) == 1:
         return jsonify({
@@ -282,18 +285,23 @@ def get_data():
     if days <= 0 or days >= 3650:
         days = 3650
 
-    conn = pymysql.connect(db_url, db_username, db_password, db_name)
-    sql = '''
-    SELECT `record_time`, `value` AS value_raw, `remark`
-    FROM `user_data`
-    WHERE `username` = %s AND
-          `value_type` = %s AND
-          (`record_time` >= (DATE(NOW()) - INTERVAL %s DAY))
-    ORDER BY `record_time` ASC
-    '''
-    df = pd.read_sql(sql,
-                    con=conn,
-                    params=[username, value_type, days])
+    try:
+        conn = pymysql.connect(db_url, db_username, db_password, db_name)
+        sql = '''
+        SELECT `record_time`, `value` AS value_raw, `remark`
+        FROM `user_data`
+        WHERE `username` = %s AND
+            `value_type` = %s AND
+            (`record_time` >= (DATE(NOW()) - INTERVAL %s DAY))
+        ORDER BY `record_time` ASC
+        '''
+        df = pd.read_sql(sql,
+                        con=conn,
+                        params=[username, value_type, days])
+    except Exception as ex:
+        return Response('数据库错误', 500)
+    finally:
+        conn.close()
 
     span =  int(df.shape[0] / 5)
     if span < 1:
@@ -382,7 +390,7 @@ def summary():
         'value_type': value_type
         }
 
-    return render_template('summary.html', **kwargs)
+    return flask.render_template('summary.html', **kwargs)
 
 
 def cleanup(*args):
