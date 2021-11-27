@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <link rel="shortcut icon" href="{{app_address}}/static/favicon.png">
-<link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
-<script src="//monitor.sz.lan/resources/monitor.js"></script>
+<link rel="stylesheet" href="{{app_address}}/static/lib/w3css/4.15/w3.css">
+<script src="{{telemetry_url}}"></script>
 <script src="{{app_address}}/static/lib/hammerjs/2.0.8/hammer.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chart.js/3.6.0/chart.{{mode}}.js"></script>
 <script src="{{app_address}}/static/lib/chartjs-plugin-zoom/1.2.0/chartjs-plugin-zoom.{{mode}}.js"></script>
@@ -63,6 +63,7 @@
 <script>
 
   var availableItems = {}
+  var isMobileDevice = (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()));
   window.onload = function() {
     logUserActivity('[health-manager/summary] load', '{{username}}');
   };
@@ -70,7 +71,7 @@
 
   function logout() {
     logUserActivity('[health-manager/record] logout', '{{username}}');
-    window.location.replace('../logout/');
+    window.location.replace('{{app_address}}/logout/');
   }
 
   var remarks = [];
@@ -140,23 +141,22 @@
       plugins: {
         zoom: {
           pan: {
-            enabled: true,
-            mode: 'x',
-            // a compromise between desktop and mobile platforms
-            // mode: 'xy' does not work well on mobile platforms.
+            enabled: !isMobileDevice,
+            mode: 'xy',
+            // only enable on desktop PCs--support for mobile platforms
+            // is not good enough.
             threshold: 5,
-            modifierKey: 'ctrl'
           },
           zoom: {
             wheel: {
-              enabled: true,
+              enabled: !isMobileDevice,
               modifierKey: 'ctrl',
             },
             drag: {
-              enabled: false, // disabled for not working well on smartphones
+              enabled: !isMobileDevice,
               modifierKey: 'ctrl'
             },
-            mode: 'x',
+            mode: 'xy',
           },
         },
         legend: { display: false },

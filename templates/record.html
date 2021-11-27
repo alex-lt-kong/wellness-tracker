@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" href="./static/favicon.png">
-<link rel="stylesheet" href="//monitor.sz.lan/resources/w3.css">
+<link rel="shortcut icon" href="{{app_address}}/static/favicon.png">
+<link rel="stylesheet" href="{{app_address}}/static/lib/w3css/4.15/w3.css">
 <link rel="stylesheet" href="//monitor.sz.lan/resources/font-awesome.min.css">
-<script src="//monitor.sz.lan/resources/monitor.js"></script>
+<script src="{{telemetry_url}}"></script>
 <script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
 <script src="{{app_address}}/static/util.js"></script>
 
@@ -65,11 +65,11 @@
 
   function logout() {
     logUserActivity('[health-manager/record] logout', '{{username}}');
-    window.location.replace('../weight_manager/logout/');
+    window.location.replace('{{app_address}}/logout/');
   }
 
   function viewSummaryPage() {
-    logUserActivity('[health-manager/record]visit summary page', '{{username}}');
+    logUserActivity('[health-manager/record] summary page - ' + $('#select-item').val(), '{{username}}');
     window.location.href='{{app_address}}/summary/?value_type=' + $('#select-item').val();
   }
 
@@ -83,7 +83,7 @@
         value_type: $('#select-item').val()
       },
       success: function(data, status){
-        logUserActivity('[health-manager/record] submit weight figure', '{{username}}');
+        logUserActivity('[health-manager/record] submit figure - ' + $('#select-item').val(), '{{username}}');
         viewSummaryPage();
       },
       error: function(jqXHR, textStatus, errorThrown) {

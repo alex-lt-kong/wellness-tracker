@@ -4,7 +4,6 @@ from flask import Flask, render_template, Response,request, redirect, session
 from flask import send_file, jsonify
 from flask_cors import CORS
 from hashlib import sha256
-from sqlalchemy import create_engine, text
 from waitress import serve
 
 import argparse
@@ -74,11 +73,11 @@ def get_average_value(username: str, value_type: str, days: int):
     else:
         entry_count = 0
     if entry_count > 0:
-        get_average_value = results[0][1]
+        average_value = results[0][1]
     else:
-        get_average_value = np.nan
+        average_value = np.nan
 
-    return entry_count, get_average_value
+    return entry_count, average_value
 
 
 @app.route('/logout/')
@@ -103,7 +102,8 @@ def login():
 
     kwargs = {
         'app_address': app_address,
-        'mode': 'dev' if debug_mode else 'prod'
+        'mode': 'dev' if debug_mode else 'prod',
+        'telemetry_url': settings['app']['telemetry_url']
     }
     if request.method == 'POST':
 
@@ -137,7 +137,8 @@ def index():
     kwargs = {
         'app_address': app_address,
         'mode': 'dev' if debug_mode else 'prod',
-        'username': username
+        'username': username,
+        'telemetry_url': settings['app']['telemetry_url']
     }
 
     return render_template('record.html', **kwargs)
@@ -281,23 +282,18 @@ def get_data():
     if days <= 0 or days >= 3650:
         days = 3650
 
-    db_conn_str = f'mysql+pymysql://{db_username}:{db_password}@{db_url}/{db_name}'
-    db_conn = create_engine(db_conn_str)
-    sql = text('''
+    conn = pymysql.connect(db_url, db_username, db_password, db_name)
+    sql = '''
     SELECT `record_time`, `value` AS value_raw, `remark`
     FROM `user_data`
-    WHERE `username` = :username AND
-          `value_type` = :value_type AND
-          (`record_time` >= (DATE(NOW()) - INTERVAL :days DAY))
+    WHERE `username` = %s AND
+          `value_type` = %s AND
+          (`record_time` >= (DATE(NOW()) - INTERVAL %s DAY))
     ORDER BY `record_time` ASC
-    ''')
+    '''
     df = pd.read_sql(sql,
-                    con=db_conn,
-                    params={
-                        'username': username, 
-                        'value_type': value_type,
-                        'days': days
-                    })
+                    con=conn,
+                    params=[username, value_type, days])
 
     span =  int(df.shape[0] / 5)
     if span < 1:
@@ -336,14 +332,14 @@ def generate_stat_table(username, value_type):
     denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
     _, today_weight = get_average_value(username, value_type, 1)
     for i in range(len(denominators)):
-        entry_count, get_average_value = get_average_value(username, value_type, denominators[i])
+        entry_count, average_value = get_average_value(username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
-        table_html += f'<td class="w3-border">{get_average_value:.1f}</td>'
+        table_html += f'<td class="w3-border">{average_value:.1f}</td>'
 
-        if get_average_value != 0:
-            change = (today_weight - get_average_value) * 1000 / get_average_value
+        if average_value != 0:
+            change = (today_weight - average_value) * 1000 / average_value
             if change > 0:
                 change_html = '<span class="w3-text-red">{:+.0f}‰</span>'.format(change)
             elif change < 0:
@@ -382,6 +378,7 @@ def summary():
         'mode': 'dev' if debug_mode else 'prod',
         'stat_table': generate_stat_table(username, value_type),
         'username': username,
+        'telemetry_url': settings['app']['telemetry_url'],
         'value_type': value_type
         }
 
