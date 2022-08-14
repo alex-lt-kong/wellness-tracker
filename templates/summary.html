@@ -64,13 +64,8 @@
 
   var availableItems = {}
   var isMobileDevice = (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()));
-  window.onload = function() {
-    logUserActivity('[health-manager/summary] load', '{{username}}');
-  };
-  window.onunload = function() { logUserActivity('[health-manager/summary] unload', '{{username}}'); };
 
   function logout() {
-    logUserActivity('[health-manager/record] logout', '{{username}}');
     window.location.replace('{{app_address}}/logout/');
   }
 
@@ -238,7 +233,6 @@
         remarks = data["remarks"];
         myLineChart.resetZoom();
         myLineChart.update();
-        logUserActivity('[health-manager/summary] interval changed to ' + days.toString() + ' days', '{{username}}');
       })
       .fail(function(jqXHR, textStatus, errorThrown) {
         alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);

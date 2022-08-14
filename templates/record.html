@@ -9,10 +9,6 @@
 
 <html>
 <head><title>录入[{{username}}]-健康管理器</title>
-  <script>
-  window.onload = function() { logUserActivity('[health-manager/record] load', '{{username}}'); };
-  window.onunload = function() { logUserActivity('[health-manager/record] unload', '{{username}}'); };
-  </script>
 </head>
 <body>
 
@@ -64,12 +60,10 @@
 
 
   function logout() {
-    logUserActivity('[health-manager/record] logout', '{{username}}');
     window.location.replace('{{app_address}}/logout/');
   }
 
   function viewSummaryPage() {
-    logUserActivity('[health-manager/record] summary page - ' + $('#select-item').val(), '{{username}}');
     window.location.href='{{app_address}}/summary/?value_type=' + $('#select-item').val();
   }
 
@@ -83,7 +77,6 @@
         value_type: $('#select-item').val()
       },
       success: function(data, status){
-        logUserActivity('[health-manager/record] submit figure - ' + $('#select-item').val(), '{{username}}');
         viewSummaryPage();
       },
       error: function(jqXHR, textStatus, errorThrown) {
