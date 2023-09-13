@@ -108,7 +108,7 @@ def login():
         kwargs['username'] = username
 
         if request.form['username'] not in settings['users']:
-            kwargs['err_msg'] = f'错误：用户{username}不存在'
+            kwargs['err_msg'] = f'错误：用户[{username}]不存在'
             return flask.render_template('login.html', **kwargs)
         if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
                 settings['users'][username]['password_hash']):
