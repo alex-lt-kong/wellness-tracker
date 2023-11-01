@@ -1,24 +1,19 @@
 #!/usr/bin/python3
 
 from flask import Response, request, redirect, session
-from flask import send_file, jsonify
+from flask import jsonify
 from hashlib import sha256
 from waitress import serve
 
 import argparse
 import datetime as dt
+import db
 import flask
-import importlib
 import json
 import logging
-import numpy as np
 import os
-import pandas as pd
-import pymysql
 import signal
 import sys
-import threading
-import time
 
 
 app = flask.Flask(__name__)
@@ -40,41 +35,10 @@ stop_signal = False
 # app_address: the app's address (including protocol and port) on the Internet
 app_address = ''
 # app_dir: the app's real address on the filesystem
-app_dir = os.path.dirname(os.path.realpath(__file__))
+app_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 debug_mode = False
 settings = {}
 app_name = 'health-manager'
-
-
-db_url = ''
-db_username = ''
-db_password = ''
-db_name = ''
-
-def get_average_value(username: str, value_type: str, days: int):
-
-    conn = pymysql.connect(db_url, db_username, db_password, db_name)
-    cursor = conn.cursor()
-    sql = '''
-        SELECT COUNT(`value`), AVG(`value`)
-        FROM `user_data`
-        WHERE (`record_time` between (NOW() - INTERVAL %s DAY ) and NOW()) AND
-            `username` = %s AND
-            `value_type` = %s
-        '''
-    cursor.execute(sql, (days, username, value_type))
-    results = cursor.fetchall()
-
-    if results is not None:
-        entry_count = results[0][0]
-    else:
-        entry_count = 0
-    if entry_count > 0:
-        average_value = results[0][1]
-    else:
-        average_value = np.nan
-
-    return entry_count, average_value
 
 
 @app.route('/logout/')
@@ -181,42 +145,10 @@ def submit_data():
     # submission and overwrite the first submission.
 
     try:
-        conn = pymysql.connect(db_url, db_username, db_password, db_name)
-        conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
-        cursor = conn.cursor()
-        sql = """
-            SELECT `id`, `record_time`, `value`, `value_type`
-            FROM `user_data`
-            WHERE `record_time` >= %s AND `username` = %s AND `value_type` = %s
-            ORDER BY `record_time` ASC
-        """
-        cursor.execute(sql, (submission_time, username, value_type))
-        results = cursor.fetchall()
-
-        if len(results) > 0:
-            sql = """
-                UPDATE `user_data`
-                SET `record_time`= %s, `value` = %s, `remark` = %s
-                WHERE `record_time` = %s AND `username` = %s
-            """
-            cursor.execute(sql, (dt.datetime.now(), value, remark, results[-1][1], username))
-            # len(results) could be greater than 1 suppose server side changes
-            # the submission_diff_tol config item
-        else:
-            sql = """
-                INSERT INTO `user_data` (`record_time`, `username`, `value`, `value_type`, `remark`)
-                VALUES (%s, %s, %s, %s, %s)
-            """
-            cursor.execute(
-                sql,
-                (dt.datetime.now(), username, value, value_type, remark)
-            )
+        db.write_data(submission_time, username, value_type, value, remark)
     except Exception as ex:
         logging.error(f'Database operation error: {ex}')
         return Response('数据库错误', 500)
-    finally:
-        cursor.close()
-        conn.close()
 
     return Response('数据写入成功', 200)
 
@@ -234,28 +166,12 @@ def get_latest_data():
         value_type = str(request.args.get('value_type'))
     except Exception as ex:
         return Response('参数错误', 400)
-    try:
-        conn = pymysql.connect(db_url, db_username, db_password, db_name)
-        conn.autocommit(True) # It appears that both UPDATE and SELECT need "commit"
-        cursor = conn.cursor()
-        sql = """
-            SELECT `record_time`, `value`, `remark`
-            FROM `user_data`
-            WHERE `username` = %s AND `value_type` = %s
-            ORDER BY `record_time` DESC
-            LIMIT 1"""
-        cursor.execute(sql, (username, value_type))
-        results = cursor.fetchall()
-    except Exception as ex:
-        logging.error('Database operation error: {ex}')
-        return Response('数据库错误', 500)
-    finally:
-        cursor.close()
-        conn.close()
+
+    results = db.get_latest_data(username, value_type)
 
     if len(results) == 1:
         return jsonify({
-            'record_time': results[0][0].strftime("%Y-%m-%d %H:%M:%S"),
+            'record_time': results[0][0],
             'value': results[0][1],
             'remark': results[0][2],
         })
@@ -285,23 +201,9 @@ def get_data():
     if days <= 0 or days >= 3650:
         days = 3650
 
-    try:
-        conn = pymysql.connect(db_url, db_username, db_password, db_name)
-        sql = '''
-        SELECT `record_time`, `value` AS value_raw, `remark`
-        FROM `user_data`
-        WHERE `username` = %s AND
-            `value_type` = %s AND
-            (`record_time` >= (DATE(NOW()) - INTERVAL %s DAY))
-        ORDER BY `record_time` ASC
-        '''
-        df = pd.read_sql(sql,
-                        con=conn,
-                        params=[username, value_type, days])
-    except Exception as ex:
-        return Response('数据库错误', 500)
-    finally:
-        conn.close()
+
+    df = db.get_data(username, value_type, days)
+
 
     span =  int(df.shape[0] / 5)
     if span < 1:
@@ -309,7 +211,7 @@ def get_data():
     df.loc[:,'value_ema'] = df['value_raw'].ewm(span=span, adjust=False).mean().round(2)
     record_times, values_raw, values_ema, remarks = [], [], [], []
     for index, row in df.iterrows():
-        record_times.append(row['record_time'].strftime("%Y-%m-%d %H:%M:%S"))
+        record_times.append(row['record_time'])
         values_raw.append(row['value_raw'])
         values_ema.append(row['value_ema'])
         remarks.append(row['remark'])
@@ -338,9 +240,9 @@ def generate_stat_table(username, value_type):
 
     denominators = [7, 30, 120, 365, 730, 1826, 3652]
     denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
-    _, today_weight = get_average_value(username, value_type, 1)
+    _, today_weight = db.get_average_value(username, value_type, 1)
     for i in range(len(denominators)):
-        entry_count, average_value = get_average_value(username, value_type, denominators[i])
+        entry_count, average_value = db.get_average_value(username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
@@ -415,11 +317,6 @@ def main():
         json_str = json_file.read()
         settings = json.loads(json_str)
 
-    db_url = settings['db']['url']
-    db_username = settings['db']['username']
-    db_password = settings['db']['password']
-    db_name = settings['db']['name']
-
     app.secret_key = settings['app']['secret_key']
     app_address = settings['app']['app_address']
     # secret_key must be the same if the server is shared by more than one service!
@@ -429,8 +326,7 @@ def main():
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-    logging.info('weight manager started')
-    start_time = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.info('Health Manager started')
 
     if debug_mode is True:
         print('Running in debug mode')
@@ -442,19 +338,8 @@ def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
 
-    emailer = importlib.machinery.SourceFileLoader(
-                    'emailer',
-                    settings['email']['path']
-                ).load_module()
-    th_email = threading.Thread(target=emailer.send_service_start_notification,
-                                kwargs={'settings_path': os.path.join(app_dir, 'settings.json'),
-                                        'service_name': app_name,
-                                        'path_of_logs_to_send': settings['app']['log_path'],
-                                        'delay': 0 if debug_mode else 300})
-    th_email.start()
-
     logging.info('Health Manager started')
-
+    db.prepare_database()
     serve(app, host='0.0.0.0', port=90)
 
 
