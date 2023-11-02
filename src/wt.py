@@ -44,7 +44,6 @@ app_name = 'health-manager'
 
 @app.route('/logout/')
 def logout():
-
     if f'{app_name}' in session:
         session[f'{app_name}'].pop('username', None)
     return redirect(f'{app_address}/')
@@ -83,7 +82,6 @@ def login():
         session[f'{app_name}']['username'] = username
         return redirect(f'{app_address}/')
 
-
     return flask.render_template('login.html', **kwargs)
 
 
@@ -101,7 +99,8 @@ def index():
         'username': username
     }
 
-    response = flask.make_response(flask.render_template('record.html', **kwargs))
+    response = flask.make_response(
+        flask.render_template('record.html', **kwargs))
     # render_template actually returns a string, just a string returned from
     # a view is automatically wrapped in a response by Flask
     # https://stackoverflow.com/questions/29464276/add-response-headers-to-flask-web-app
@@ -109,12 +108,10 @@ def index():
     return response
 
 
-
 @app.route('/get-available-items/', methods=['GET'])
 def get_available_items():
-    
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
-        username = session[f'{app_name}']['username']
+        _ = session[f'{app_name}']['username']
     else:
         return Response('用户未登录', 401)
 
@@ -123,25 +120,25 @@ def get_available_items():
 
 @app.route('/submit-data/', methods=['POST'])
 def submit_data():
-
     if f'{app_name}' in session and 'username' in session[f'{app_name}']:
         username = session[f'{app_name}']['username']
     else:
         return Response('用户未登录', 401)
-    
+
     try:
         value = float(request.form['value'])
         value_type = str(request.form['value_type'])
         remark = str(request.form['remark'])
-    except Exception as ex:
+    except Exception:
         return Response('参数错误', 400)
     if value_type not in settings['items'].keys():
         return Response('value_type不在允许列表内', 400)
 
-    submission_time = dt.datetime.now() - dt.timedelta(seconds=settings['app']['submission_diff_tol'])
-    # If the interval between two submissions are not larger than this number of
-    # minutes, the second submission will be considered the same as the first
-    # submission and overwrite the first submission.
+    submission_time = dt.datetime.now() - dt.timedelta(
+        seconds=settings['app']['submission_diff_tol'])
+    # If the interval between two submissions are not larger than this number
+    # of minutes, the second submission will be considered the same as the
+    # first submission and overwrite the first submission.
 
     try:
         db.write_data(submission_time, username, value_type, value, remark)
@@ -163,7 +160,7 @@ def get_latest_data():
 
     try:
         value_type = str(request.args.get('value_type'))
-    except Exception as ex:
+    except Exception:
         return Response('参数错误', 400)
 
     results = db.get_latest_data(username, value_type)
@@ -190,24 +187,23 @@ def get_data():
         username = session[f'{app_name}']['username']
     else:
         return Response('用户未登录', 401)
-    
+
     days = -1
     try:
         days = int(request.args.get('days')) - 1
         value_type = str(request.args.get('value_type'))
-    except Exception as ex:
+    except Exception:
         return Response('参数错误', 400)
     if days <= 0 or days >= 3650:
         days = 3650
 
-
     df = db.get_data(username, value_type, days)
 
-
-    span =  int(df.shape[0] / 5)
+    span = int(df.shape[0] / 5)
     if span < 1:
         span = 1
-    df.loc[:,'value_ema'] = df['value_raw'].ewm(span=span, adjust=False).mean().round(2)
+    df.loc[:, 'value_ema'] = df['value_raw'].ewm(
+        span=span, adjust=False).mean().round(2)
     record_times, values_raw, values_ema, remarks = [], [], [], []
     for index, row in df.iterrows():
         record_times.append(row['record_time'])
@@ -216,8 +212,10 @@ def get_data():
         remarks.append(row['remark'])
 
     reference_value = -1
-    if settings['users'][username]['gender'] in settings['items'][value_type]['reference_value']:
-        reference_value = settings['items'][value_type]['reference_value'][settings['users'][username]['gender']]
+    if (settings['users'][username]['gender'] in
+            settings['items'][value_type]['reference_value']):
+        reference_value = settings['items'][value_type][
+            'reference_value'][settings['users'][username]['gender']]
 
     return jsonify({
         "record_times": record_times,
@@ -241,7 +239,8 @@ def generate_stat_table(username, value_type):
     denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
     _, today_weight = db.get_average_value(username, value_type, 1)
     for i in range(len(denominators)):
-        entry_count, average_value = db.get_average_value(username, value_type, denominators[i])
+        entry_count, average_value = db.get_average_value(
+            username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
@@ -250,9 +249,11 @@ def generate_stat_table(username, value_type):
         if average_value != 0:
             change = (today_weight - average_value) * 1000 / average_value
             if change > 0:
-                change_html = '<span class="w3-text-red">{:+.0f}‰</span>'.format(change)
+                change_html = '<span class="w3-text-red">{:+.0f}‰</span>'.format(
+                    change)
             elif change < 0:
-                change_html = '<span class="w3-text-green">{:+.0f}‰</span>'.format(change)
+                change_html = '<span class="w3-text-green">{:+.0f}‰</span>'.format(
+                    change)
             elif change == 0:
                 change_html = '0‰'
             else:
@@ -279,7 +280,7 @@ def summary():
         if value_type not in settings['items']:
             raise ValueError('')
             # the program will work even without this check
-    except Exception as ex:
+    except Exception:
         return Response('参数错误', 400)
 
     kwargs = {
@@ -317,11 +318,13 @@ def main():
 
     app.secret_key = settings['app']['secret_key']
     app_address = settings['app']['app_address']
-    # secret_key must be the same if the server is shared by more than one service!
+    # secret_key must be the same if the server is
+    # shared by more than one service!
     logging.basicConfig(
         stream=sys.stdout,
         level=logging.DEBUG if debug_mode else logging.INFO,
-        format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+        format=('%(asctime)s.%(msecs)03d %(levelname)s %(module)s - '
+                '%(funcName)s: %(message)s'),
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     logging.info('Wellness Tracker started')
