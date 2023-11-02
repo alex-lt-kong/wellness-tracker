@@ -21,7 +21,8 @@ app.secret_key = b''
 app.config['JSON_AS_ASCII'] = False
 app.config['JSON_SORT_KEYS'] = False
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    # SESSION_COOKIE_SECURE=True means we accept HTTPS connections only
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=True,
     # If this is set to True, client-side JavaScript will not be able to
     # access the session cookie.
@@ -63,8 +64,7 @@ def login():
 
     kwargs = {
         'app_address': app_address,
-        'mode': 'dev' if debug_mode else 'prod',
-        'telemetry_url': settings['app']['telemetry_url']
+        'mode': 'dev' if debug_mode else 'prod'
     }
     if request.method == 'POST':
 
@@ -97,9 +97,8 @@ def index():
 
     kwargs = {
         'app_address': app_address,
-        'mode': 'dev' if debug_mode else 'prod',
-        'username': username,
-        'telemetry_url': settings['app']['telemetry_url']
+        'cdn_address': settings['app']['cdn_address'],
+        'username': username
     }
 
     response = flask.make_response(flask.render_template('record.html', **kwargs))
@@ -285,12 +284,11 @@ def summary():
 
     kwargs = {
         'app_address': app_address,
-        'mode': 'dev' if debug_mode else 'prod',
         'stat_table': generate_stat_table(username, value_type),
         'username': username,
-        'telemetry_url': settings['app']['telemetry_url'],
-        'value_type': value_type
-        }
+        'value_type': value_type,
+        'cdn_address': settings['app']['cdn_address']
+    }
 
     return flask.render_template('summary.html', **kwargs)
 
@@ -321,12 +319,12 @@ def main():
     app_address = settings['app']['app_address']
     # secret_key must be the same if the server is shared by more than one service!
     logging.basicConfig(
-        filename=settings['app']['log_path'],
+        stream=sys.stdout,
         level=logging.DEBUG if debug_mode else logging.INFO,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-    logging.info('Health Manager started')
+    logging.info('Wellness Tracker started')
 
     if debug_mode is True:
         print('Running in debug mode')
@@ -338,9 +336,9 @@ def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
 
-    logging.info('Health Manager started')
+    logging.info('Wellness Tracker started')
     db.prepare_database()
-    serve(app, host='0.0.0.0', port=90)
+    serve(app, host='0.0.0.0', port=settings['app']['port'])
 
 
 if __name__ == '__main__':

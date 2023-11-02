@@ -1,113 +1,170 @@
 <!DOCTYPE html>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" href="{{app_address}}/static/favicon.png">
-<link rel="stylesheet" href="{{app_address}}/static/lib/w3css/4.15/w3.css">
-<link rel="stylesheet" href="//monitor.sz.lan/resources/font-awesome.min.css">
-<script src="{{telemetry_url}}"></script>
-<script src="{{app_address}}/static/lib/jquery/3.6.0/jquery.{{mode}}.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="shortcut icon" href="{{app_address}}/static/favicon.png" />
+<link rel="stylesheet" href="{{app_address}}/static/w3css/4.15/w3.css" />
+<link rel="stylesheet" href="//monitor.sz.lan/resources/font-awesome.min.css" />
+<script
+  src="{{cdn_address}}/jquery/3.6.0/jquery.min.js"
+  type="application/javascript"
+></script>
 <script src="{{app_address}}/static/util.js"></script>
 
 <html>
-<head><title>录入[{{username}}]-健康管理器</title>
-</head>
-<body>
-
-<div class="w3-container w3-padding-16" style="max-width: 50em; margin-top:20vh; display: block; margin-left: auto; margin-right: auto;">
-  <div class="w3-card-4">
-    <div class="w3-container w3-blue">
-      <h3>{{username}}您好，<span class="w3-right" style="margin-bottom:1rem;font-size:0.65em;"><a href="#" onclick="logout();">退出</a></span></h3>
-    </div>  
-    <div class="w3-container">
-    	<p>
-    	  <label class="w3-text-blue"><b>记录</b></label>
-        <select id="select-item" class="w3-select w3-text-blue w3-border" style="width:8em; font-weight:bold; background-color: #FFFFFF;">
-        </select>
-    	  <input type="hidden" name="username" value="{{username}}">
-    	  <input id="input-value" class="w3-input w3-border w3-light-grey" placeholder="单位：" type="number">
-    	</p>
-    	<p>
-    	  <label class="w3-text-blue"><b>备注</b></label>
-    	  <input id="input-remark" class="w3-input w3-border w3-light-grey" type="text">
-    	</p>
-      <p id="warning-message" style="color:red"></p>
-    	<button id="button-submit" class="w3-button w3-border w3-blue-grey w3-left" style="margin-bottom:1rem;">提交数据</button>
-    	<input id="input-view" class="w3-button w3-border w3-blue-grey w3-right" style="margin-bottom:1rem;" type="button" onclick="viewSummaryPage();" value="查看数据" />
+  <head>
+    <title>录入[{{username}}]-健康管理器</title>
+  </head>
+  <body>
+    <div
+      class="w3-container w3-padding-16"
+      style="
+        max-width: 50em;
+        margin-top: 20vh;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      "
+    >
+      <div class="w3-card-4">
+        <div class="w3-container w3-blue">
+          <h3>
+            {{username}}您好，<span
+              class="w3-right"
+              style="margin-bottom: 1rem; font-size: 0.65em"
+              ><a href="#" onclick="logout();">退出</a></span
+            >
+          </h3>
+        </div>
+        <div class="w3-container">
+          <p>
+            <label class="w3-text-blue"><b>记录</b></label>
+            <select
+              id="select-item"
+              class="w3-select w3-text-blue w3-border"
+              style="width: 8em; font-weight: bold; background-color: #ffffff"
+            ></select>
+            <input type="hidden" name="username" value="{{username}}" />
+            <input
+              id="input-value"
+              class="w3-input w3-border w3-light-grey"
+              placeholder="单位："
+              type="number"
+            />
+          </p>
+          <p>
+            <label class="w3-text-blue"><b>备注</b></label>
+            <input
+              id="input-remark"
+              class="w3-input w3-border w3-light-grey"
+              type="text"
+            />
+          </p>
+          <p id="warning-message" style="color: red"></p>
+          <button
+            id="button-submit"
+            class="w3-button w3-border w3-blue-grey w3-left"
+            style="margin-bottom: 1rem"
+          >
+            提交数据
+          </button>
+          <input
+            id="input-view"
+            class="w3-button w3-border w3-blue-grey w3-right"
+            style="margin-bottom: 1rem"
+            type="button"
+            onclick="viewSummaryPage();"
+            value="查看数据"
+          />
+        </div>
+      </div>
     </div>
-    
-  </div>
-</div>
-</body>
+  </body>
 
-<script>
+  <script>
+    var availableItems = {};
+    // This dict must match a pre-defined list on the server side.
 
-  var availableItems = {};
-  // This dict must match a pre-defined list on the server side.
-
-  function getAvailableItems() {
-    $.ajax({
-      url:"{{app_address}}/get-available-items/",
-      type:"get",
-      success: function(data, status){
-        availableItems = data['data'];
-        initSelectOptions("#select-item");
-        $("#select-item").change();
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
-      }
-    });
-  }
-
-
-  function logout() {
-    window.location.replace('{{app_address}}/logout/');
-  }
-
-  function viewSummaryPage() {
-    window.location.href='{{app_address}}/summary/?value_type=' + $('#select-item').val();
-  }
-
-  $("#button-submit").click(function() {
-    $.ajax({
-      url:"{{app_address}}/submit-data/",
-      type:"POST",
-      data:{
-        value: $("#input-value").val(),
-        remark: $("#input-remark").val(),
-        value_type: $('#select-item').val()
-      },
-      success: function(data, status){
-        viewSummaryPage();
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
-      }
-    });
-  });
-  $('#select-item').on('change', function() {
-    $("#input-value").attr("placeholder", "单位：" + availableItems[this.value].unit);
-  });
-
-  function delay(fn, ms) {
-    let timer = 0
-    return function(...args) {
-      clearTimeout(timer)
-      timer = setTimeout(fn.bind(this, ...args), ms || 0)
+    function getAvailableItems() {
+      $.ajax({
+        url: "{{app_address}}/get-available-items/",
+        type: "get",
+        success: function (data, status) {
+          availableItems = data["data"];
+          initSelectOptions("#select-item");
+          $("#select-item").change();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+          alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+        },
+      });
     }
-  }
-  $('#input-value').keyup(delay(function (e) {
-    const minVal = availableItems[$('#select-item').val()]['typical_range'][0];
-    const maxVal = availableItems[$('#select-item').val()]['typical_range'][1];
-    if ($('#input-value').val() < minVal || $('#input-value').val() > maxVal) { 
-      $('#warning-message').html(
-        "警告：<b>" + availableItems[$('#select-item').val()]['chinese_name'] +
-        "</b>的常见范围是[" + minVal.toString() + ", " + maxVal.toString() +  "]，" + 
-        "而目前你输入的值却是<b>" + $('#input-value').val().toString() + "</b>???请检查是否输入有误。"
-        );
-    } else {
-      $('#warning-message').html("");
+
+    function logout() {
+      window.location.replace("{{app_address}}/logout/");
     }
-  }, 500));
-  getAvailableItems();
-</script>
+
+    function viewSummaryPage() {
+      window.location.href =
+        "{{app_address}}/summary/?value_type=" + $("#select-item").val();
+    }
+
+    $("#button-submit").click(function () {
+      $.ajax({
+        url: "{{app_address}}/submit-data/",
+        type: "POST",
+        data: {
+          value: $("#input-value").val(),
+          remark: $("#input-remark").val(),
+          value_type: $("#select-item").val(),
+        },
+        success: function (data, status) {
+          viewSummaryPage();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+          alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+        },
+      });
+    });
+    $("#select-item").on("change", function () {
+      $("#input-value").attr(
+        "placeholder",
+        "单位：" + availableItems[this.value].unit
+      );
+    });
+
+    function delay(fn, ms) {
+      let timer = 0;
+      return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(fn.bind(this, ...args), ms || 0);
+      };
+    }
+    $("#input-value").keyup(
+      delay(function (e) {
+        const minVal =
+          availableItems[$("#select-item").val()]["typical_range"][0];
+        const maxVal =
+          availableItems[$("#select-item").val()]["typical_range"][1];
+        if (
+          $("#input-value").val() < minVal ||
+          $("#input-value").val() > maxVal
+        ) {
+          $("#warning-message").html(
+            "警告：<b>" +
+              availableItems[$("#select-item").val()]["chinese_name"] +
+              "</b>的常见范围是[" +
+              minVal.toString() +
+              ", " +
+              maxVal.toString() +
+              "]，" +
+              "而目前你输入的值却是<b>" +
+              $("#input-value").val().toString() +
+              "</b>???请检查是否输入有误。"
+          );
+        } else {
+          $("#warning-message").html("");
+        }
+      }, 500)
+    );
+    getAvailableItems();
+  </script>
 </html>
