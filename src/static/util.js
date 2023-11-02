@@ -4,7 +4,7 @@
       console.log(k);
       $(selectID).append($('<option>', {
         value: k,
-        text: availableItems[k].chinese_name
+        text: availableItems[k].display_name
       }));
     }
   }
