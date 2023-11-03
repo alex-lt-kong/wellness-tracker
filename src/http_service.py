@@ -78,7 +78,7 @@ def get_available_items():
     if gv.app_name in session and 'username' in session[gv.app_name]:
         _ = session[gv.app_name]['username']
     else:
-        return Response('用户未登录', 401)
+        return Response('User not logged in/用户未登录', 401)
 
     return {"data": gv.settings['items']}
 
@@ -88,14 +88,14 @@ def submit_data():
     if gv.app_name in session and 'username' in session[gv.app_name]:
         username = session[gv.app_name]['username']
     else:
-        return Response('用户未登录', 401)
+        return Response('User not logged in/用户未登录', 401)
 
     try:
         value = float(request.form['value'])
         value_type = str(request.form['value_type'])
         remark = str(request.form['remark'])
     except Exception:
-        return Response('参数错误', 400)
+        return Response('Invalid parameters/参数错误 (/submit-data/)', 400)
     if value_type not in gv.settings['items'].keys():
         return Response('value_type不在允许列表内', 400)
 
@@ -105,37 +105,38 @@ def submit_data():
 
 @app.route('/get-latest-data/', methods=['GET'])
 def get_latest_data():
-    # It turns out that combining get_data() and get_latest_data() is NOT
-    # a good idea since there are a few differences..
+    # It turns out that combining get_data_by_duration() and
+    # get_latest_data() is NOT a good idea since there are a few differences..
     if gv.app_name in session and 'username' in session[gv.app_name]:
         username = session[gv.app_name]['username']
     else:
-        return Response('用户未登录', 401)
+        return Response('User not logged in/用户未登录', 401)
 
     try:
         value_type = str(request.args.get('value_type'))
     except Exception:
-        return Response('参数错误', 400)
+        return Response('Invalid parameters/参数错误 (/get-latest-data/)', 400)
 
     return flask.jsonify(bl.get_latest_data(username, value_type))
 
 
-@app.route('/get-data/', methods=['GET'])
-def get_data():
+@app.route('/get-data-by-duration/', methods=['GET'])
+def get_data_by_duration():
     if gv.app_name in session and 'username' in session[gv.app_name]:
         username = session[gv.app_name]['username']
     else:
-        return Response('用户未登录', 401)
+        return Response('User not logged in/用户未登录', 401)
     days = -1
     try:
-        days = int(request.args.get('days')) - 1
+        days = int(str(request.args.get('days'))) - 1
         value_type = str(request.args.get('value_type'))
     except Exception:
-        return Response('参数错误', 400)
+        return Response(
+            'Invalid parameters/参数错误 (/get-data-by-duration/)', 400)
     if days <= 0 or days >= 3650:
         days = 3650
 
-    return flask.jsonify(bl.get_data(days, username, value_type))
+    return flask.jsonify(bl.get_data_by_duration(days, username, value_type))
 
 
 def generate_stat_table(username, value_type):
@@ -161,11 +162,9 @@ def generate_stat_table(username, value_type):
         if average_value != 0:
             change = (today_weight - average_value) * 1000 / average_value
             if change > 0:
-                change_html = '<span class="w3-text-red">{:+.0f}‰</span>'.format(
-                    change)
+                change_html = f'<span class="w3-text-red">{change:+.0f}‰</span>'
             elif change < 0:
-                change_html = '<span class="w3-text-green">{:+.0f}‰</span>'.format(
-                    change)
+                change_html = f'<span class="w3-text-green">{change:+.0f}‰</span>'
             elif change == 0:
                 change_html = '0‰'
             else:
@@ -193,7 +192,7 @@ def summary():
             raise ValueError('')
             # the program will work even without this check
     except Exception:
-        return Response('参数错误', 400)
+        return Response('Invalid parameters/参数错误', 400)
 
     kwargs = {
         'advertised_address': advertised_address,
@@ -210,7 +209,7 @@ def start_http_service():
 
     global app, advertised_address
     app.config['JSON_AS_ASCII'] = False
-    app.json.sort_keys = False
+    app.json.sort_keys = False  # type: ignore
     app.config.update(
         # SESSION_COOKIE_SECURE=True means we accept HTTPS connections only
         SESSION_COOKIE_SECURE=False,
@@ -222,7 +221,7 @@ def start_http_service():
     # secret_key must be the same if the server is
     # shared by more than one service!
     app.secret_key = gv.settings['app']['secret_key']
-    # advertised_address: the app's address (including protocol and port) on 
+    # advertised_address: the app's address (including protocol and port) on
     # the Internet
     advertised_address = gv.settings['app']['advertised_address']
 

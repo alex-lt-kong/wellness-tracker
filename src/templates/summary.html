@@ -331,7 +331,7 @@
 
     function updateLineChartData(days) {
       $.get(
-        "{{advertised_address}}/get-data/?value_type={{value_type}}&days=" +
+        "{{advertised_address}}/get-data-by-duration/?value_type={{value_type}}&days=" +
           days.toString()
       )
         .done(function (data, status, xhr) {

@@ -5,9 +5,9 @@ import datetime as dt
 import global_vars as gv
 
 
-def get_data(days: int, username: str, value_type: str) -> Dict[str, Any]:
+def get_data_by_duration(days: int, username: str, value_type: str) -> Dict[str, Any]:
 
-    df = da.get_data(username, value_type, days)
+    df = da.get_data_by_duration(username, value_type, days)
 
     span = int(df.shape[0] / 5)
     if span < 1:
@@ -15,7 +15,7 @@ def get_data(days: int, username: str, value_type: str) -> Dict[str, Any]:
     df.loc[:, 'value_ema'] = df['value_raw'].ewm(
         span=span, adjust=False).mean().round(2)
     record_times, values_raw, values_ema, remarks = [], [], [], []
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():
         record_times.append(row['record_time'])
         values_raw.append(row['value_raw'])
         values_ema.append(row['value_ema'])

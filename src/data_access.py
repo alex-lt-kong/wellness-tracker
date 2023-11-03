@@ -138,7 +138,7 @@ def get_latest_data(username: str, value_type: str) -> List[Any]:
             con.close()
 
 
-def get_data(username: str, value_type: str, days: int) -> pd.DataFrame:
+def get_data_by_duration(username: str, value_type: str, days: int) -> pd.DataFrame:
     con: Optional[sqlite3.Connection] = None
     try:
         con = sqlite3.connect(db_path)
