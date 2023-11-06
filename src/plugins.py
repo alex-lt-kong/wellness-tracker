@@ -18,7 +18,7 @@ class BMI(PluginBase):
         if (weight_kg is None or
                 (isinstance(weight_kg, float) is False and
                  isinstance(weight_kg, int) is False)):
-            return "<p>BMI:&nbsp;NA</p>"
+            return "<p>BMI:&nbsp;NA, weight not available</p>"
         try:
             height_cm = gv.settings['users'][username]['height_cm']
             bmi = round(weight_kg / ((height_cm / 100.0) ** 2), 1)
@@ -38,5 +38,5 @@ class BMI(PluginBase):
                     BMI:&nbsp;{bmi} ({nutritional_status}).
                     Normal weight range: {normal_weight_range}kg
                 </p>'''
-        except Exception:
-            return '<p style="text-align: center;">BMI:&nbsp;NA</p>'
+        except Exception as ex:
+            return f'<p style="text-align: center;">BMI:&nbsp;NA, {ex}</p>'
