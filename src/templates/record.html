@@ -11,7 +11,7 @@
 
 <html>
   <head>
-    <title>录入[{{username}}]-健康管理器</title>
+    <title>Input/录入-Wellness Tracker/健康管理器</title>
   </head>
   <body>
     <div
@@ -93,7 +93,7 @@
           $("#select-item").change();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-          alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+          alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
         },
       });
     }
@@ -120,14 +120,14 @@
           viewSummaryPage();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-          alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+          alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
         },
       });
     });
     $("#select-item").on("change", function () {
       $("#input-value").attr(
         "placeholder",
-        "单位：" + availableItems[this.value].unit
+        "Unit/单位: " + availableItems[this.value].unit
       );
     });
 

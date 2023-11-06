@@ -36,7 +36,7 @@ class BMI(PluginBase):
             return f'''
                 <p style="text-align: center;">
                     BMI:&nbsp;{bmi} ({nutritional_status}).
-                    Normal weight range: {normal_weight_range}kg
+                    Target range/目标区间: {normal_weight_range}kg
                 </p>'''
         except Exception as ex:
             return f'<p style="text-align: center;">BMI:&nbsp;NA, {ex}</p>'

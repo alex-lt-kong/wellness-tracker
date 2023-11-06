@@ -8,7 +8,6 @@ import datetime as dt
 import data_access as da
 import flask
 import global_vars as gv
-import plugins as pg
 import plugins_router as pgr
 
 
@@ -142,12 +141,14 @@ def get_data_by_duration():
     return flask.jsonify(bl.get_data_by_duration(days, username, value_type))
 
 
-def generate_stat_table(username, value_type):
+def generate_stats_table(username, value_type):
 
     table_html = """
     <table class="w3-table w3-striped w3-bordered w3-hoverable">
       <tr class="w3-blue">
-        <th>时间跨度</th><th>测量次数</th><th>平均值</th><th>变动</th>
+        <th>Duration<br>时间跨度</th>
+        <th>Measurements<br>测量次数</th><th>Avg. Value<br>平均值</th>
+        <th>Change<br>变动</th>
       </tr>
     """
 
@@ -195,7 +196,7 @@ def summary():
             raise ValueError('')
             # the program will work even without this check
     except Exception:
-        return Response('Invalid parameters/参数错误', 400)
+        return Response('Invalid parameters/参数错误(/summary/)', 400)
 
     plugin_html = ''
     try:
@@ -205,7 +206,7 @@ def summary():
         pass
     kwargs = {
         'advertised_address': advertised_address,
-        'stat_table': generate_stat_table(username, value_type),
+        'stats_table': generate_stats_table(username, value_type),
         'plugin_html': plugin_html,
         'username': username,
         'value_type': value_type,
