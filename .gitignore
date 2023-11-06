@@ -171,3 +171,4 @@ cython_debug/
 #
 settings.json
 database.sqlite
+plugins_router.py

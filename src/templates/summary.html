@@ -66,11 +66,11 @@
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>概况</h5>
+          <h5>Summary/概况:</h5>
         </div>
         <div class="w3-container w3-center w3-padding-8">
           <p id="last-record-time" style="margin-bottom: 0px; margin-top: 0px">
-            载入中...
+            Loading.../载入中...
           </p>
           <p
             style="
@@ -84,16 +84,17 @@
               id="latest-value-unit"
             ></span>
           </p>
-          <p style="margin-top: -0.3rem">
-            备注：<span id="latest-remark">载入中...</span>
+          <p id="latest-remark-paragraph" style="margin-top: -0.3rem">
+            Remarks/备注：<span id="latest-remark">Loading.../载入中...</span>
           </p>
+          {{plugin_html|safe}}
         </div>
         <hr style="margin-top: 0px; margin-left: 2em; margin-right: 2em" />
         <div
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>折线图</h5>
+          <h5>Line Chart/折线图</h5>
         </div>
         <div class="w3-container w3-center w3-padding-16">
           <div class="chart-container" style="width: 99%; height: 300px">
@@ -147,7 +148,7 @@
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>统计表</h5>
+          <h5>Stats/统计表</h5>
         </div>
         <div class="w3-container w3-center w3-padding-16">
           {{stat_table|safe}}
@@ -295,6 +296,9 @@
         $("#last-record-time").text(data["record_time"]);
         $("#latest-weight").text(data["value"]);
         $("#latest-remark").text(data["remark"]);
+        if (data["remark"].length == 0) {
+          $("#latest-remark-paragraph").hide();
+        }
       },
       error: function (jqXHR, textStatus, errorThrown) {
         alert("错误：\n" + errorThrown + "\n" + jqXHR.responseText);

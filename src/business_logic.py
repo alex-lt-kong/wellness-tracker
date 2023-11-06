@@ -51,7 +51,7 @@ def get_latest_data(username: str, value_type: str) -> Dict[str, Any]:
             'value': None,
             'remark': None,
         }
-    raise ValueError('Impossible scenario!')
+    raise ValueError(f'Impossible scenario, len(results)=={len(results)}')
 
 
 def submit_data(username: str, value_type: str,

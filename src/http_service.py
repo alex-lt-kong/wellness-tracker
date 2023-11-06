@@ -2,11 +2,14 @@ from flask import Response, request, redirect, session
 from hashlib import sha256
 from waitress import serve
 
+
 import business_logic as bl
 import datetime as dt
 import data_access as da
 import flask
 import global_vars as gv
+import plugins as pg
+import plugins_router as pgr
 
 
 app = flask.Flask(__name__)
@@ -194,9 +197,16 @@ def summary():
     except Exception:
         return Response('Invalid parameters/参数错误', 400)
 
+    plugin_html = ''
+    try:
+        plugin_html = pgr.plugins_router[username][value_type](
+            username, value_type)
+    except KeyError:
+        pass
     kwargs = {
         'advertised_address': advertised_address,
         'stat_table': generate_stat_table(username, value_type),
+        'plugin_html': plugin_html,
         'username': username,
         'value_type': value_type,
         'cdn_address': gv.settings['app']['cdn_address']
