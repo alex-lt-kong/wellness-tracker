@@ -9,7 +9,6 @@ def get_data_by_duration(days: int, username: str,
                          value_type: str) -> DtoData:
 
     df = da.get_data_by_duration(username, value_type, days)
-
     span = int(df.shape[0] / 5)
     if span < 1:
         span = 1

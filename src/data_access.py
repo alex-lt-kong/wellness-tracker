@@ -46,9 +46,7 @@ def get_average_value(username: str, value_type: str,
             SELECT COUNT(value), AVG(value)
             FROM user_data
             WHERE
-                (
-                    record_time between date('now', '-{} day') and date('now')
-                ) AND
+                record_time >= date('now', '-{} day') AND
                 username = ? AND
                 value_type = ?
         """.format(days), (username, value_type))
