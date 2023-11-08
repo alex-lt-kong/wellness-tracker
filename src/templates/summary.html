@@ -307,7 +307,7 @@
           $("#latest-value").text(data["values_raw"][0]);
         }
 
-        if (data["remarks"].length == 0) {
+        if (data["remarks"].length == 0 || data["remarks"][0].length == 0) {
           $("#latest-remark-paragraph").hide();
         } else {
           $("#latest-remark").text(data["remarks"][0]);
