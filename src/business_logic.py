@@ -1,11 +1,12 @@
-from typing import Any, Dict
+from dto.dto_data import DtoData
 
 import data_access as da
 import datetime as dt
 import global_vars as gv
 
 
-def get_data_by_duration(days: int, username: str, value_type: str) -> Dict[str, Any]:
+def get_data_by_duration(days: int, username: str,
+                         value_type: str) -> DtoData:
 
     df = da.get_data_by_duration(username, value_type, days)
 
@@ -14,43 +15,29 @@ def get_data_by_duration(days: int, username: str, value_type: str) -> Dict[str,
         span = 1
     df.loc[:, 'value_ema'] = df['value_raw'].ewm(
         span=span, adjust=False).mean().round(2)
-    record_times, values_raw, values_ema, remarks = [], [], [], []
-    for _, row in df.iterrows():
-        record_times.append(row['record_time'])
-        values_raw.append(row['value_raw'])
-        values_ema.append(row['value_ema'])
-        remarks.append(row['remark'])
 
     reference_value = -1
     if (gv.settings['users'][username]['gender'] in
             gv.settings['items'][value_type]['reference_value']):
         reference_value = gv.settings['items'][value_type][
             'reference_value'][gv.settings['users'][username]['gender']]
-
-    return {
-        "record_times": record_times,
-        "values_raw": values_raw,
-        "values_ema": values_ema,
-        "remarks": remarks,
-        "reference_value": reference_value
-    }
+    return DtoData(
+        df['record_time'].to_list(), df['value_raw'].to_list(),
+        df['value_ema'].to_list(), df['remark'].to_list(), reference_value)
 
 
-def get_latest_data(username: str, value_type: str) -> Dict[str, Any]:
+def get_latest_data(username: str, value_type: str) -> DtoData:
     results = da.get_latest_data(username, value_type)
-
+    reference_value = -1
+    if (gv.settings['users'][username]['gender'] in
+            gv.settings['items'][value_type]['reference_value']):
+        reference_value = gv.settings['items'][value_type][
+            'reference_value'][gv.settings['users'][username]['gender']]
     if len(results) == 1:
-        return {
-            'record_time': results[0][0],
-            'value': results[0][1],
-            'remark': results[0][2],
-        }
-    elif len(results) == 0:
-        return {
-            'record_time': None,
-            'value': None,
-            'remark': None,
-        }
+        return DtoData([results[0][0]], [results[0][1]], [results[0][1]],
+                       [results[0][2]],  reference_value)
+    if len(results) == 0:
+        return DtoData([], [], [], [], reference_value)
     raise ValueError(f'Impossible scenario, len(results)=={len(results)}')
 
 

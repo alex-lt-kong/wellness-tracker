@@ -2,7 +2,6 @@ from typing import List, Tuple, Any, Optional
 
 import datetime as dt
 import logging
-import numpy as np
 import os
 import pandas as pd
 import sqlite3
@@ -37,7 +36,7 @@ def prepare_database() -> None:
 
 
 def get_average_value(username: str, value_type: str,
-                      days: int) -> Tuple[Any, Any]:
+                      days: int) -> Tuple[int, Optional[float]]:
     con: Optional[sqlite3.Connection] = None
     results: Optional[List[Any]] = None
     try:
@@ -69,7 +68,7 @@ def get_average_value(username: str, value_type: str,
     if entry_count > 0:
         average_value = results[0][1]
     else:
-        average_value = np.nan
+        average_value = None
 
     return entry_count, average_value
 

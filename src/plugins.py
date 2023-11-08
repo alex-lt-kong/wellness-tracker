@@ -15,14 +15,12 @@ class PluginBase(ABC):
 class BMI(PluginBase):
     @staticmethod
     def render(username: str, value_type: str):
-        weight_kg = bl.get_latest_data(username, value_type)['value']
-        if (weight_kg is None or
-                (isinstance(weight_kg, float) is False and
-                 isinstance(weight_kg, int) is False)):
-            return "<p>BMI:&nbsp;NA, weight not available</p>"
+        weight_kg = bl.get_latest_data(username, value_type).values_raw
+        if (len(weight_kg) == 0):
+            return "<p>BMI:&nbsp;NA, weight not available/没有体重数据</p>"
         try:
             height_cm = gv.settings['users'][username]['height_cm']
-            bmi = round(weight_kg / ((height_cm / 100.0) ** 2), 1)
+            bmi = round(weight_kg[0] / ((height_cm / 100.0) ** 2), 1)
             # reference: https://www.chp.gov.hk/en/resources/e_health_topics/pdfwav_11012.html
             if bmi < 18.5:
                 nutritional_status = 'Underweight/过轻'
@@ -47,24 +45,22 @@ class AverageWeightGain(PluginBase):
     @staticmethod
     def render(username: str, value_type: str) -> str:
         data_points = 8
-        res = bl.get_data_by_duration(data_points, username, value_type)
-        if len(res['record_times']) < data_points:
+        dto = bl.get_data_by_duration(data_points, username, value_type)
+        if len(dto.record_times) < data_points:
             return '''
                 <p style="text-align: center;">
                     Error: too few data points/错误：数据点太少
                 </p>
             '''
         days = (
-            dt.datetime.strptime(res['record_times'][-1], '%Y-%m-%d %H:%M:%S') -
-            dt.datetime.strptime(res['record_times'][0], '%Y-%m-%d %H:%M:%S')
+            dt.datetime.strptime(dto.record_times[-1], '%Y-%m-%d %H:%M:%S') -
+            dt.datetime.strptime(dto.record_times[0], '%Y-%m-%d %H:%M:%S')
         ).days
-        weight_gain_grams = (
-            res['values_raw'][-1] - res['values_raw'][0]
-        ) * 1000
+        weight_gain_grams = (dto.values_raw[-1] - dto.values_raw[0]) * 1000
         dob = dt.datetime.strptime(gv.settings['users'][username]['dob'],
                                    '%Y-%m-%d')
         age_in_days = (
-            dt.datetime.strptime(res['record_times'][-1], '%Y-%m-%d %H:%M:%S') -
+            dt.datetime.strptime(dto.record_times[-1], '%Y-%m-%d %H:%M:%S') -
             dob
         ).days
         target_weight_gain_per_day = 0
@@ -90,4 +86,3 @@ class AverageWeightGain(PluginBase):
                 <b>~{target_weight_gain_per_day}克</b>
             </p>
         '''
-    

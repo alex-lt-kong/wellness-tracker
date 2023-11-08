@@ -47,7 +47,7 @@ def login():
             return flask.render_template('login.html', **kwargs)
         if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
                 gv.settings['users'][username]['password_hash']):
-            kwargs['err_msg'] = '错误：密码错误'
+            kwargs['err_msg'] = 'Error: Incorrect password/错误：密码错误'
             return flask.render_template('login.html', **kwargs)
 
         session[gv.app_name] = {}
@@ -107,8 +107,15 @@ def submit_data():
 
 @app.route('/get-latest-data/', methods=['GET'])
 def get_latest_data():
-    # It turns out that combining get_data_by_duration() and
-    # get_latest_data() is NOT a good idea since there are a few differences..
+    # Can we combine bl.get_latest_data() and bl.get_data_by_duration()?
+    # Answer is NO.
+    # bl.get_data_by_duration() returns data from the past N days,
+    # if there is no data, it returns an empty set.
+    # bl.get_latest_data() returns the latest data, no matter how far ago
+    # that data is.
+    # Using bl.get_data_by_duration() to achieve the function of
+    # bl.get_latest_data() means we need to set N to a very large number,
+    # which is not a good idea.
     if gv.app_name in session and 'username' in session[gv.app_name]:
         username = session[gv.app_name]['username']
     else:
@@ -153,26 +160,29 @@ def generate_stats_table(username, value_type):
     """
 
     denominators = [7, 30, 120, 365, 730, 1826, 3652]
-    denominators_names = ['1周', '1月', '4月', '1年', '2年', '5年', '10年']
-    _, today_weight = da.get_average_value(username, value_type, 1)
+    denominators_names = [
+        '1w/1周', '1m/1月', '4m/4月', '1y/1年', '2y/2年', '5y/5年', '10y/10年'
+    ]
+    values_raw = bl.get_latest_data(username, value_type).values_raw
+    latest_value = values_raw[0] if len(values_raw) > 0 else None
     for i in range(len(denominators)):
         entry_count, average_value = da.get_average_value(
             username, value_type, denominators[i])
         table_html += '<tr class="w3-hover-blue">'
         table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
         table_html += f'<td class="w3-border">{entry_count}</td>'
-        table_html += f'<td class="w3-border">{average_value:.1f}</td>'
-
-        if average_value != 0:
-            change = (today_weight - average_value) * 1000 / average_value
+        table_html += (f'<td class="w3-border">{average_value:.1f}</td>'
+                       if isinstance(average_value, float) else
+                       '<td class="w3-border">NA</td>')
+        if (average_value is not None and latest_value is not None
+                and average_value != 0 and entry_count > 0):
+            change = (latest_value - average_value) * 1000 / average_value
             if change > 0:
                 change_html = f'<span class="w3-text-red">{change:+.0f}‰</span>'
             elif change < 0:
                 change_html = f'<span class="w3-text-green">{change:+.0f}‰</span>'
-            elif change == 0:
-                change_html = '0‰'
             else:
-                change_html = 'nan‰'
+                change_html = '0‰'
         else:
             change_html = 'nan‰'
         table_html += f'<td class="w3-border"><b>{change_html}</b></td>'

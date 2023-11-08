@@ -80,7 +80,7 @@
               margin-top: -0.3rem;
             "
           >
-            <span id="latest-weight"></span>&nbsp;<span
+            <span id="latest-value"></span>&nbsp;<span
               id="latest-value-unit"
             ></span>
           </p>
@@ -295,11 +295,22 @@
       url: "{{advertised_address}}/get-latest-data/?value_type={{value_type}}",
       type: "get",
       success: function (data, status, xhr) {
-        $("#last-record-time").text(data["record_time"]);
-        $("#latest-weight").text(data["value"]);
-        $("#latest-remark").text(data["remark"]);
-        if (data["remark"].length == 0) {
+        if (data["record_times"].length == 0) {
+          $("#last-record-time").text("None/空");
+        } else {
+          $("#last-record-time").text(data["record_times"][0]);
+        }
+
+        if (data["values_raw"].length == 0) {
+          $("#latest-value").text("None/空");
+        } else {
+          $("#latest-value").text(data["values_raw"][0]);
+        }
+
+        if (data["remarks"].length == 0) {
           $("#latest-remark-paragraph").hide();
+        } else {
+          $("#latest-remark").text(data["remarks"][0]);
         }
       },
       error: function (jqXHR, textStatus, errorThrown) {
