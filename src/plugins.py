@@ -44,9 +44,8 @@ class BMI(PluginBase):
 class AverageWeightGain(PluginBase):
     @staticmethod
     def render(username: str, value_type: str) -> str:
-        data_points = 8
-        dto = bl.get_data_by_duration(data_points, username, value_type)
-        if len(dto.record_times) < data_points:
+        dto = bl.get_data_by_duration(8, username, value_type)
+        if len(dto.record_times) < 2:
             return '''
                 <p style="text-align: center;">
                     Error: too few data points/错误：数据点太少
@@ -56,6 +55,14 @@ class AverageWeightGain(PluginBase):
             dt.datetime.strptime(dto.record_times[-1], '%Y-%m-%d %H:%M:%S') -
             dt.datetime.strptime(dto.record_times[0], '%Y-%m-%d %H:%M:%S')
         ).days
+        if days == 0:
+            return '''
+                <p style="text-align: center;">
+                    Error: need to have data from at least two days
+                    /
+                    错误：需要至少2日的数据
+                </p>
+            '''
         weight_gain_grams = (dto.values_raw[-1] - dto.values_raw[0]) * 1000
         dob = dt.datetime.strptime(gv.settings['users'][username]['dob'],
                                    '%Y-%m-%d')
