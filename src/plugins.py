@@ -44,26 +44,27 @@ class BMI(PluginBase):
 class AverageWeightGain(PluginBase):
     @staticmethod
     def render(username: str, value_type: str) -> str:
-        dto = bl.get_data_by_duration(8, username, value_type)
-        if len(dto.record_times) < 2:
+        data_points = 15
+        dto = bl.get_data_by_duration(30, username, value_type)
+        if len(dto.record_times) < data_points:
             return '''
                 <p style="text-align: center;">
                     Error: too few data points/错误：数据点太少
                 </p>
             '''
-        days = (
-            dt.datetime.strptime(dto.record_times[-1], '%Y-%m-%d %H:%M:%S') -
-            dt.datetime.strptime(dto.record_times[0], '%Y-%m-%d %H:%M:%S')
-        ).days
+        first_record_time = dt.datetime.strptime(
+            dto.record_times[-1 * data_points], '%Y-%m-%d %H:%M:%S')
+        last_record_time = dt.datetime.strptime(
+            dto.record_times[-1], '%Y-%m-%d %H:%M:%S')
+        days = (last_record_time - first_record_time).total_seconds() / (60 * 60 * 24)
         if days == 0:
             return '''
                 <p style="text-align: center;">
-                    Error: need to have data from at least two days
-                    /
-                    错误：需要至少2日的数据
+                    Error: too few data points/错误：数据点太少
                 </p>
             '''
-        weight_gain_grams = (dto.values_raw[-1] - dto.values_raw[0]) * 1000
+        weight_gain_grams = (dto.values_raw[-1] -
+                             dto.values_raw[-1 * data_points]) * 1000
         dob = dt.datetime.strptime(gv.settings['users'][username]['dob'],
                                    '%Y-%m-%d')
         age_in_days = (
@@ -82,12 +83,12 @@ class AverageWeightGain(PluginBase):
 
         return f'''
             <p style="text-align: center;">
-                Avg. weight gain over {days} days: 
+                Avg. weight gain over {int(days)} days:
                 <b>{int(round(weight_gain_grams / days, 0))}g</b>.
                 She is {age_in_days} days old and should gain
                 <b>~{target_weight_gain_per_day}g</b> per day
                 <br>
-                过去{days}日每日体重平均增加
+                过去{int(days)}日每日体重平均增加
                 <b>{int(round(weight_gain_grams / days, 0))}克</b>。
                 她现在{age_in_days}日大，每日体重应当增加
                 <b>~{target_weight_gain_per_day}克</b>
