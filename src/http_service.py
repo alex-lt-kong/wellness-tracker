@@ -206,7 +206,12 @@ def summary():
             raise ValueError('')
             # the program will work even without this check
     except Exception:
-        return Response('Invalid parameters/参数错误(/summary/)', 400)
+        return Response('''
+        <p>data type unspecified/数据类型未指定</p>
+        <p><a href="../">
+            Click here to return to record page/点此返回记录页
+        </a></p>
+        ''', 400)
 
     plugin_html = ''
     try:
