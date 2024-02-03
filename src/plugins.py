@@ -47,11 +47,7 @@ class AverageWeightGain(PluginBase):
         data_points = 15
         dto = bl.get_data_by_duration(30, username, value_type)
         if len(dto.record_times) < data_points:
-            return '''
-                <p style="text-align: center;">
-                    Error: too few data points/错误：数据点太少
-                </p>
-            '''
+            data_points = len(dto.record_times)
         first_record_time = dt.datetime.strptime(
             dto.record_times[-1 * data_points], '%Y-%m-%d %H:%M:%S')
         last_record_time = dt.datetime.strptime(
@@ -60,7 +56,7 @@ class AverageWeightGain(PluginBase):
         if days == 0:
             return '''
                 <p style="text-align: center;">
-                    Error: too few data points/错误：数据点太少
+                    Error: not enough data points[1]
                 </p>
             '''
         weight_gain_grams = (dto.values_raw[-1] -
@@ -78,6 +74,10 @@ class AverageWeightGain(PluginBase):
             target_weight_gain_per_day = int((7.3 - 5.8) / 90 * 1000)
         elif age_in_days < 270:
             target_weight_gain_per_day = int((8.2 - 7.3) / 90 * 1000)
+        elif age_in_days < 360:
+            target_weight_gain_per_day = int((8.9 - 8.2) / 90 * 1000)
+        elif age_in_days < 720:
+            target_weight_gain_per_day = int((11.5 - 9.8) / 360 * 1000)
         else:
             target_weight_gain_per_day = -1
 
