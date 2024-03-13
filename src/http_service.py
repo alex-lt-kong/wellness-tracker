@@ -15,60 +15,13 @@ app = flask.Flask(__name__)
 advertised_address = ''
 
 
-@app.route('/logout/')
-def logout():
-    if gv.app_name in session:
-        session[gv.app_name].pop('username', None)
-    return redirect(f'{advertised_address}/')
-
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-    app.permanent_session_lifetime = dt.timedelta(days=365)
-
-
-@app.route('/login/', methods=['GET', 'POST'])
-def login():
-
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        return redirect(f'{advertised_address}/')
-
-    kwargs = {
-        'advertised_address': advertised_address
-    }
-    if request.method == 'POST':
-
-        username = request.form['username']
-        kwargs['username'] = username
-
-        if request.form['username'] not in gv.settings['users']:
-            kwargs['err_msg'] = f'错误：用户[{username}]不存在'
-            return flask.render_template('login.html', **kwargs)
-        if (sha256(request.form['password'].encode('utf-8')).hexdigest() !=
-                gv.settings['users'][username]['password_hash']):
-            kwargs['err_msg'] = 'Error: Incorrect password/错误：密码错误'
-            return flask.render_template('login.html', **kwargs)
-
-        session[gv.app_name] = {}
-        session[gv.app_name]['username'] = username
-        return redirect(f'{advertised_address}/')
-
-    return flask.render_template('login.html', **kwargs)
-
-
 @app.route('/', methods=['GET'])
 def index():
-
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        username = session[gv.app_name]['username']
-    else:
-        return redirect(f'{advertised_address}/login/')
 
     kwargs = {
         'advertised_address': advertised_address,
         'cdn_address': gv.settings['app']['cdn_address'],
-        'username': username
+        'username': request.authorization.username
     }
 
     return flask.make_response(
@@ -77,20 +30,12 @@ def index():
 
 @app.route('/get-available-items/', methods=['GET'])
 def get_available_items():
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        _ = session[gv.app_name]['username']
-    else:
-        return Response('User not logged in/用户未登录', 401)
 
     return {"data": gv.settings['items']}
 
 
 @app.route('/submit-data/', methods=['POST'])
 def submit_data():
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        username = session[gv.app_name]['username']
-    else:
-        return Response('User not logged in/用户未登录', 401)
 
     try:
         value = float(request.form['value'])
@@ -101,7 +46,7 @@ def submit_data():
     if value_type not in gv.settings['items'].keys():
         return Response('value_type不在允许列表内', 400)
 
-    bl.submit_data(username, value_type, value, remark)
+    bl.submit_data(request.authorization.username, value_type, value, remark)
     return Response('数据写入成功', 200)
 
 
@@ -116,25 +61,18 @@ def get_latest_data():
     # Using bl.get_data_by_duration() to achieve the function of
     # bl.get_latest_data() means we need to set N to a very large number,
     # which is not a good idea.
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        username = session[gv.app_name]['username']
-    else:
-        return Response('User not logged in/用户未登录', 401)
 
     try:
         value_type = str(request.args.get('value_type'))
     except Exception:
         return Response('Invalid parameters/参数错误 (/get-latest-data/)', 400)
 
-    return flask.jsonify(bl.get_latest_data(username, value_type))
+    return flask.jsonify(bl.get_latest_data(request.authorization.username, value_type))
 
 
 @app.route('/get-data-by-duration/', methods=['GET'])
 def get_data_by_duration():
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        username = session[gv.app_name]['username']
-    else:
-        return Response('User not logged in/用户未登录', 401)
+
     days = -1
     try:
         days = int(str(request.args.get('days'))) - 1
@@ -145,7 +83,7 @@ def get_data_by_duration():
     if days <= 0 or days >= 3650:
         days = 3650
 
-    return flask.jsonify(bl.get_data_by_duration(days, username, value_type))
+    return flask.jsonify(bl.get_data_by_duration(days, request.authorization.username, value_type))
 
 
 def generate_stats_table(username, value_type):
@@ -194,12 +132,7 @@ def generate_stats_table(username, value_type):
 
 @app.route('/summary/', methods=['GET'])
 def summary():
-
-    if gv.app_name in session and 'username' in session[gv.app_name]:
-        username = session[gv.app_name]['username']
-    else:
-        return redirect(f'{advertised_address}/login/')
-
+    username = request.authorization.username
     try:
         value_type = str(request.args.get('value_type'))
         if value_type not in gv.settings['items']:
@@ -244,9 +177,6 @@ def start_http_service():
         # access the session cookie.
         SESSION_COOKIE_SAMESITE='Lax',
     )
-    # secret_key must be the same if the server is
-    # shared by more than one service!
-    app.secret_key = gv.settings['app']['secret_key']
     # advertised_address: the app's address (including protocol and port) on
     # the Internet
     advertised_address = gv.settings['app']['advertised_address']
