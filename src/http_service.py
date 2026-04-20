@@ -15,13 +15,22 @@ app = flask.Flask(__name__)
 advertised_address = ''
 
 
+def get_username() -> str:
+    """Return the authenticated username from the reverse proxy's auth
+    headers, or fall back to the default_user from settings if no proxy
+    is in front of the app."""
+    if request.authorization and request.authorization.username:
+        return request.authorization.username
+    return gv.settings['app'].get('default_user', 'default')
+
+
 @app.route('/', methods=['GET'])
 def index():
 
     kwargs = {
         'advertised_address': advertised_address,
         'cdn_address': gv.settings['app']['cdn_address'],
-        'username': request.authorization.username
+        'username': get_username()
     }
 
     return flask.make_response(
@@ -46,7 +55,7 @@ def submit_data():
     if value_type not in gv.settings['items'].keys():
         return Response('value_type不在允许列表内', 400)
 
-    bl.submit_data(request.authorization.username, value_type, value, remark)
+    bl.submit_data(get_username(), value_type, value, remark)
     return Response('数据写入成功', 200)
 
 
@@ -67,7 +76,7 @@ def get_latest_data():
     except Exception:
         return Response('Invalid parameters/参数错误 (/get-latest-data/)', 400)
 
-    return flask.jsonify(bl.get_latest_data(request.authorization.username, value_type))
+    return flask.jsonify(bl.get_latest_data(get_username(), value_type))
 
 
 @app.route('/get-data-by-duration/', methods=['GET'])
@@ -83,56 +92,47 @@ def get_data_by_duration():
     if days <= 0 or days >= 3650:
         days = 3650
 
-    return flask.jsonify(bl.get_data_by_duration(days, request.authorization.username, value_type))
+    return flask.jsonify(bl.get_data_by_duration(days, get_username(), value_type))
 
 
-def generate_stats_table(username, value_type):
+@app.route('/get-stats/', methods=['GET'])
+def get_stats():
+    try:
+        value_type = str(request.args.get('value_type'))
+    except Exception:
+        return Response('Invalid parameters/参数错误 (/get-stats/)', 400)
 
-    table_html = """
-    <table class="w3-table w3-striped w3-bordered w3-hoverable">
-      <tr class="w3-blue">
-        <th>Duration<br>时间跨度</th>
-        <th>Measurements<br>测量次数</th><th>Avg. Value<br>平均值</th>
-        <th>Change<br>变动</th>
-      </tr>
-    """
-
+    username = get_username()
     denominators = [7, 30, 120, 365, 730, 1826, 3652]
-    denominators_names = [
+    denominator_names = [
         '1w/1周', '1m/1月', '4m/4月', '1y/1年', '2y/2年', '5y/5年', '10y/10年'
     ]
     values_raw = bl.get_latest_data(username, value_type).values_raw
     latest_value = values_raw[0] if len(values_raw) > 0 else None
+
+    rows = []
     for i in range(len(denominators)):
         entry_count, average_value = da.get_average_value(
             username, value_type, denominators[i])
-        table_html += '<tr class="w3-hover-blue">'
-        table_html += f'<td class="w3-border">{denominators_names[i]}</td>'
-        table_html += f'<td class="w3-border">{entry_count}</td>'
-        table_html += (f'<td class="w3-border">{average_value:.1f}</td>'
-                       if isinstance(average_value, float) else
-                       '<td class="w3-border">NA</td>')
+        change = None
         if (average_value is not None and latest_value is not None
                 and average_value != 0 and entry_count > 0):
-            change = (latest_value - average_value) * 1000 / average_value
-            if change > 0:
-                change_html = f'<span class="w3-text-red">{change:+.0f}‰</span>'
-            elif change < 0:
-                change_html = f'<span class="w3-text-green">{change:+.0f}‰</span>'
-            else:
-                change_html = '0‰'
-        else:
-            change_html = 'nan‰'
-        table_html += f'<td class="w3-border"><b>{change_html}</b></td>'
-        table_html += '</tr>'
-    table_html += '</table>'
+            change = round(
+                (latest_value - average_value) * 1000 / average_value)
+        rows.append({
+            'duration': denominator_names[i],
+            'entry_count': entry_count,
+            'average_value': round(average_value, 1) if isinstance(
+                average_value, float) else None,
+            'change_permille': change
+        })
 
-    return table_html
+    return flask.jsonify({'latest_value': latest_value, 'rows': rows})
 
 
 @app.route('/summary/', methods=['GET'])
 def summary():
-    username = request.authorization.username
+    username = get_username()
     try:
         value_type = str(request.args.get('value_type'))
         if value_type not in gv.settings['items']:
@@ -154,7 +154,6 @@ def summary():
         pass
     kwargs = {
         'advertised_address': advertised_address,
-        'stats_table': generate_stats_table(username, value_type),
         'plugin_html': plugin_html,
         'username': username,
         'value_type': value_type,

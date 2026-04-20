@@ -151,7 +151,7 @@
           <h5>Stats/统计表</h5>
         </div>
         <div class="w3-container w3-center w3-padding-16">
-          {{stats_table|safe}}
+          <div id="stats-table-container">Loading.../载入中...</div>
         </div>
       </div>
     </div>
@@ -369,5 +369,54 @@
         })
         .always(function () {});
     }
+    function loadStatsTable() {
+      $.get("{{advertised_address}}/get-stats/?value_type={{value_type}}")
+        .done(function (data) {
+          var html =
+            '<table class="w3-table w3-striped w3-bordered w3-hoverable">' +
+            '<tr class="w3-blue">' +
+            "<th>Duration<br>时间跨度</th>" +
+            "<th>Measurements<br>测量次数</th>" +
+            "<th>Avg. Value<br>平均值</th>" +
+            "<th>Change<br>变动</th>" +
+            "</tr>";
+          data["rows"].forEach(function (row) {
+            var avgText =
+              row["average_value"] !== null
+                ? row["average_value"].toFixed(1)
+                : "NA";
+            var changeHtml;
+            if (row["change_permille"] !== null) {
+              var c = row["change_permille"];
+              if (c > 0) {
+                changeHtml =
+                  '<span class="w3-text-red">+' + c + "‰</span>";
+              } else if (c < 0) {
+                changeHtml =
+                  '<span class="w3-text-green">' + c + "‰</span>";
+              } else {
+                changeHtml = "0‰";
+              }
+            } else {
+              changeHtml = "nan‰";
+            }
+            html +=
+              '<tr class="w3-hover-blue">' +
+              '<td class="w3-border">' + row["duration"] + "</td>" +
+              '<td class="w3-border">' + row["entry_count"] + "</td>" +
+              '<td class="w3-border">' + avgText + "</td>" +
+              '<td class="w3-border"><b>' + changeHtml + "</b></td>" +
+              "</tr>";
+          });
+          html += "</table>";
+          $("#stats-table-container").html(html);
+        })
+        .fail(function (jqXHR, textStatus, errorThrown) {
+          $("#stats-table-container").html(
+            "Error loading stats/统计表加载失败"
+          );
+        });
+    }
+    loadStatsTable();
   </script>
 </html>
