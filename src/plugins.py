@@ -17,25 +17,25 @@ class BMI(PluginBase):
     def render(username: str, value_type: str):
         weight_kg = bl.get_latest_data(username, value_type).values_raw
         if (len(weight_kg) == 0):
-            return "<p>BMI:&nbsp;NA, weight not available/没有体重数据</p>"
+            return "<p>BMI:&nbsp;NA, weight data not available</p>"
         try:
             height_cm = gv.settings['users'][username]['height_cm']
             bmi = round(weight_kg[0] / ((height_cm / 100.0) ** 2), 1)
             # reference: https://www.chp.gov.hk/en/resources/e_health_topics/pdfwav_11012.html
             if bmi < 18.5:
-                nutritional_status = 'Underweight/过轻'
+                nutritional_status = 'Underweight'
             elif bmi < 22.9:
-                nutritional_status = 'Normal weight/适中'
+                nutritional_status = 'Normal'
             elif bmi < 24.9:
-                nutritional_status = 'Overweight/过重'
+                nutritional_status = 'Overweight'
             else:
-                nutritional_status = 'Obese/肥胖'
+                nutritional_status = 'Obese'
             normal_weight_range = [round(18.5 * ((height_cm / 100.0) ** 2), 1),
                                    round(22.9 * ((height_cm / 100.0) ** 2), 1)]
             return f'''
                 <p style="text-align: center;">
                     BMI:&nbsp;{bmi} ({nutritional_status}).
-                    Target range/目标区间: {normal_weight_range}kg
+                    Target range: {normal_weight_range}kg
                 </p>'''
         except Exception as ex:
             return f'<p style="text-align: center;">BMI:&nbsp;NA, {ex}</p>'
@@ -84,13 +84,8 @@ class AverageWeightGain(PluginBase):
         return f'''
             <p style="text-align: center;">
                 Avg. weight gain over {int(days)} days:
-                <b>{int(round(weight_gain_grams / days, 0))}g</b>.
-                She is {age_in_days} days old and should gain
-                <b>~{target_weight_gain_per_day}g</b> per day
-                <br>
-                过去{int(days)}日每日体重平均增加
-                <b>{int(round(weight_gain_grams / days, 0))}克</b>。
-                她现在{age_in_days}日大，每日体重应当增加
-                <b>~{target_weight_gain_per_day}克</b>
+                <b>{int(round(weight_gain_grams / days, 0))}g/day</b>.
+                Age: {age_in_days} days. Target:
+                <b>~{target_weight_gain_per_day}g/day</b>
             </p>
         '''

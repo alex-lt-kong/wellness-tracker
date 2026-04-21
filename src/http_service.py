@@ -51,12 +51,12 @@ def submit_data():
         value_type = str(request.form['value_type'])
         remark = str(request.form['remark'])
     except Exception:
-        return Response('Invalid parameters/参数错误 (/submit-data/)', 400)
+        return Response('Invalid parameters (/submit-data/)', 400)
     if value_type not in gv.settings['items'].keys():
-        return Response('value_type不在允许列表内', 400)
+        return Response('value_type is not in the allowed list', 400)
 
     bl.submit_data(get_username(), value_type, value, remark)
-    return Response('数据写入成功', 200)
+    return Response('Data saved successfully', 200)
 
 
 @app.route('/get-latest-data/', methods=['GET'])
@@ -74,7 +74,7 @@ def get_latest_data():
     try:
         value_type = str(request.args.get('value_type'))
     except Exception:
-        return Response('Invalid parameters/参数错误 (/get-latest-data/)', 400)
+        return Response('Invalid parameters (/get-latest-data/)', 400)
 
     return flask.jsonify(bl.get_latest_data(get_username(), value_type))
 
@@ -88,7 +88,7 @@ def get_data_by_duration():
         value_type = str(request.args.get('value_type'))
     except Exception:
         return Response(
-            'Invalid parameters/参数错误 (/get-data-by-duration/)', 400)
+            'Invalid parameters (/get-data-by-duration/)', 400)
     # days=0 means "all data"; negative values are invalid so clamp to 0
     if days < 0:
         days = 0
@@ -101,13 +101,12 @@ def get_stats():
     try:
         value_type = str(request.args.get('value_type'))
     except Exception:
-        return Response('Invalid parameters/参数错误 (/get-stats/)', 400)
+        return Response('Invalid parameters (/get-stats/)', 400)
 
     username = get_username()
-    denominators = [7, 30, 120, 365, 730, 1826, 3652, 0]
+    denominators = [30, 180, 365, 1826, 3652, 0]
     denominator_names = [
-        '1w/1周', '1m/1月', '4m/4月', '1y/1年', '2y/2年',
-        '5y/5年', '10y/10年', 'All/全部'
+        '1m', '6m', '1y', '5y', '10y', 'All'
     ]
     values_raw = bl.get_latest_data(username, value_type).values_raw
     latest_value = values_raw[0] if len(values_raw) > 0 else None
@@ -142,9 +141,9 @@ def summary():
             # the program will work even without this check
     except Exception:
         return Response('''
-        <p>data type unspecified/数据类型未指定</p>
+        <p>Data type not specified</p>
         <p><a href="../">
-            Click here to return to record page/点此返回记录页
+            Click here to return to the record page
         </a></p>
         ''', 400)
 

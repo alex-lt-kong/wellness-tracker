@@ -30,7 +30,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <html>
   <head>
-    <title>Summary/简报-Wellness Tracker/健康管理器</title>
+    <title>Summary - Wellness Tracker</title>
   </head>
   <body>
     <div
@@ -48,7 +48,7 @@
       <div class="w3-card-4">
         <div class="w3-container w3-blue">
           <h4>
-            {{username}}的
+            {{username}} -
             <select
               id="select-item"
               class="w3-select w3-text-white"
@@ -58,7 +58,7 @@
               class="w3-right"
               style="margin-bottom: 1rem; font-size: 0.65em"
             >
-              <a href="#" onclick="logout();">Logout退出</a>
+              <a href="#" onclick="logout();">Logout</a>
             </span>
           </h4>
         </div>
@@ -66,11 +66,11 @@
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>Summary/概况:</h5>
+          <h5>Summary</h5>
         </div>
         <div class="w3-container w3-center w3-padding-8">
           <p id="last-record-time" style="margin-bottom: 0px; margin-top: 0px">
-            Loading.../载入中...
+            Loading...
           </p>
           <p
             style="
@@ -85,7 +85,7 @@
             ></span>
           </p>
           <p id="latest-remark-paragraph" style="margin-top: -0.3rem">
-            Remarks/备注：<span id="latest-remark">Loading.../载入中...</span>
+            Remarks: <span id="latest-remark">Loading...</span>
           </p>
           {{plugin_html|safe}}
         </div>
@@ -94,7 +94,7 @@
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>Line Chart/折线图</h5>
+          <h5>Chart</h5>
         </div>
         <div class="w3-container w3-center w3-padding-16">
           <div class="chart-container" style="width: 99%; height: 300px">
@@ -108,15 +108,15 @@
               name="days-radio-button"
               onclick="updateLineChartData(30);"
             />
-            <label for="days-radio-button-0">1月</label>
+            <label for="days-radio-button-0">1M</label>
             <input
               id="days-radio-button-1"
               class="w3-radio"
               type="radio"
               name="days-radio-button"
-              onclick="updateLineChartData(120);"
+              onclick="updateLineChartData(180);"
             />
-            <label for="days-radio-button-1">4月</label>
+            <label for="days-radio-button-1">6M</label>
             <input
               id="days-radio-button-2"
               class="w3-radio"
@@ -124,31 +124,23 @@
               name="days-radio-button"
               onclick="updateLineChartData(365);"
             />
-            <label for="days-radio-button-2">1年</label>
+            <label for="days-radio-button-2">1Y</label>
             <input
               id="days-radio-button-3"
               class="w3-radio"
               type="radio"
               name="days-radio-button"
-              onclick="updateLineChartData(730);"
+              onclick="updateLineChartData(3652);"
             />
-            <label for="days-radio-button-3">2年</label>
+            <label for="days-radio-button-3">10Y</label>
             <input
               id="days-radio-button-4"
               class="w3-radio"
               type="radio"
               name="days-radio-button"
-              onclick="updateLineChartData(3652);"
-            />
-            <label for="days-radio-button-4">10年</label>
-            <input
-              id="days-radio-button-5"
-              class="w3-radio"
-              type="radio"
-              name="days-radio-button"
               onclick="updateLineChartData(0);"
             />
-            <label for="days-radio-button-5">All/全部</label>
+            <label for="days-radio-button-4">All</label>
           </div>
         </div>
         <hr style="margin-top: 0px; margin-left: 2em; margin-right: 2em" />
@@ -156,10 +148,10 @@
           class="w3-panel w3-leftbar w3-border-blue"
           style="margin-bottom: 0px"
         >
-          <h5>Stats/统计表</h5>
+          <h5>Stats</h5>
         </div>
         <div class="w3-container w3-center w3-padding-16">
-          <div id="stats-table-container">Loading.../载入中...</div>
+          <div id="stats-table-container">Loading...</div>
         </div>
       </div>
     </div>
@@ -183,7 +175,7 @@
         labels: [],
         datasets: [
           {
-            label: "Upper band/上轨",
+            label: "Upper band",
             data: [],
             fill: "+1",
             backgroundColor: "rgba(244, 67, 54, 0.1)",
@@ -192,7 +184,7 @@
             tension: 0.3,
           },
           {
-            label: "EMA/移动平均",
+            label: "EMA",
             data: [],
             fill: "+1",
             backgroundColor: "rgba(244, 67, 54, 0.1)",
@@ -202,7 +194,7 @@
             tension: 0.3,
           },
           {
-            label: "Lower band/下轨",
+            label: "Lower band",
             data: [],
             fill: false,
             borderWidth: 0,
@@ -210,7 +202,7 @@
             tension: 0.3,
           },
           {
-            label: "Raw value/原始",
+            label: "Raw value",
             data: [],
             fill: false,
             borderWidth: 0,
@@ -219,7 +211,7 @@
             tension: 0,
           },
           {
-            label: "Reference value/参考值",
+            label: "Reference",
             data: [],
             fill: false,
             backgroundColor: "#4CAF50",
@@ -299,7 +291,7 @@
                 ) {
                   multilineLabel = [label];
                   multilineLabel.push(
-                    "Remarks/备注: " + remarks[context.dataIndex]
+                    "Remarks: " + remarks[context.dataIndex]
                   );
                   return multilineLabel;
                 } else {
@@ -322,13 +314,13 @@
       type: "get",
       success: function (data, status, xhr) {
         if (data["record_times"].length == 0) {
-          $("#last-record-time").text("None/空");
+          $("#last-record-time").text("None");
         } else {
           $("#last-record-time").text(data["record_times"][0]);
         }
 
         if (data["values_raw"].length == 0) {
-          $("#latest-value").text("None/空");
+          $("#latest-value").text("None");
         } else {
           $("#latest-value").text(data["values_raw"][0]);
         }
@@ -340,7 +332,7 @@
         }
       },
       error: function (jqXHR, textStatus, errorThrown) {
-        alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+        alert("Error:\n" + errorThrown + "\n" + jqXHR.responseText);
       },
     });
 
@@ -363,7 +355,7 @@
         });
       },
       error: function (jqXHR, textStatus, errorThrown) {
-        alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+        alert("Error:\n" + errorThrown + "\n" + jqXHR.responseText);
       },
     });
 
@@ -395,7 +387,7 @@
           myLineChart.update();
         })
         .fail(function (jqXHR, textStatus, errorThrown) {
-          alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+          alert("Error:\n" + errorThrown + "\n" + jqXHR.responseText);
         })
         .always(function () {});
     }
@@ -405,10 +397,10 @@
           var html =
             '<table class="w3-table w3-striped w3-bordered w3-hoverable">' +
             '<tr class="w3-blue">' +
-            "<th>Duration<br>时间跨度</th>" +
-            "<th>Measurements<br>测量次数</th>" +
-            "<th>Avg. Value<br>平均值</th>" +
-            "<th>Change<br>变动</th>" +
+            "<th>Duration</th>" +
+            "<th>Count</th>" +
+            "<th>Avg.</th>" +
+            "<th>Change</th>" +
             "</tr>";
           data["rows"].forEach(function (row) {
             var avgText =
@@ -443,7 +435,7 @@
         })
         .fail(function (jqXHR, textStatus, errorThrown) {
           $("#stats-table-container").html(
-            "Error loading stats/统计表加载失败"
+            "Error loading stats"
           );
         });
     }

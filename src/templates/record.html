@@ -11,7 +11,7 @@
 
 <html>
   <head>
-    <title>Input/录入-Wellness Tracker/健康管理器</title>
+    <title>Record - Wellness Tracker</title>
   </head>
 
   <body>
@@ -31,13 +31,13 @@
             Hi {{username}},<span
               class="w3-right"
               style="margin-bottom: 1rem; font-size: 0.65em"
-              ><a href="#" onclick="logout();">Logout/退出</a></span
+              ><a href="#" onclick="logout();">Logout</a></span
             >
           </h3>
         </div>
         <div class="w3-container">
           <p>
-            <label class="w3-text-blue"><b>Record/记录</b></label>
+            <label class="w3-text-blue"><b>Record</b></label>
             <select
               id="select-item"
               class="w3-select w3-text-blue w3-border"
@@ -47,12 +47,12 @@
             <input
               id="input-value"
               class="w3-input w3-border w3-light-grey"
-              placeholder="单位："
+              placeholder="Unit:"
               type="number"
             />
           </p>
           <p>
-            <label class="w3-text-blue"><b>Remarks/备注</b></label>
+            <label class="w3-text-blue"><b>Remarks</b></label>
             <input
               id="input-remark"
               class="w3-input w3-border w3-light-grey"
@@ -65,7 +65,7 @@
             class="w3-button w3-border w3-blue-grey w3-left"
             style="margin-bottom: 1rem"
           >
-            Submit/提交
+            Submit
           </button>
           <input
             id="input-view"
@@ -73,7 +73,7 @@
             style="margin-bottom: 1rem"
             type="button"
             onclick="viewSummaryPage();"
-            value="View/查看"
+            value="View"
           />
         </div>
       </div>
@@ -94,7 +94,7 @@
           $("#select-item").change();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-          alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+          alert("Error:\n" + errorThrown + "\n" + jqXHR.responseText);
         },
       });
     }
@@ -121,14 +121,14 @@
           viewSummaryPage();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-          alert("Error/错误：\n" + errorThrown + "\n" + jqXHR.responseText);
+          alert("Error:\n" + errorThrown + "\n" + jqXHR.responseText);
         },
       });
     });
     $("#select-item").on("change", function () {
       $("#input-value").attr(
         "placeholder",
-        "Unit/单位: " + availableItems[this.value].unit
+        "Unit: " + availableItems[this.value].unit
       );
     });
 
@@ -150,16 +150,15 @@
           $("#input-value").val() > maxVal
         ) {
           $("#warning-message").html(
-            "警告：<b>" +
+            "Warning: the typical range for <b>" +
               availableItems[$("#select-item").val()]["display_name"] +
-              "</b>的常见范围是[" +
+              "</b> is [" +
               minVal.toString() +
               ", " +
               maxVal.toString() +
-              "]，" +
-              "而目前你输入的值却是<b>" +
+              "], but you entered <b>" +
               $("#input-value").val().toString() +
-              "</b>???请检查是否输入有误。"
+              "</b>. Please check for typos."
           );
         } else {
           $("#warning-message").html("");
