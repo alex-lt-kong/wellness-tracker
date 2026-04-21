@@ -141,6 +141,14 @@
               onclick="updateLineChartData(3652);"
             />
             <label for="days-radio-button-4">10年</label>
+            <input
+              id="days-radio-button-5"
+              class="w3-radio"
+              type="radio"
+              name="days-radio-button"
+              onclick="updateLineChartData(0);"
+            />
+            <label for="days-radio-button-5">All/全部</label>
           </div>
         </div>
         <hr style="margin-top: 0px; margin-left: 2em; margin-right: 2em" />
@@ -175,34 +183,51 @@
         labels: [],
         datasets: [
           {
-            label: "Moving average/移动平均",
+            label: "Upper band/上轨",
             data: [],
-            fill: false,
-            tension: 0.5,
-            backgroundColor: "#f44336",
+            fill: "+1",
+            backgroundColor: "rgba(244, 67, 54, 0.1)",
+            borderWidth: 0,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: "EMA/移动平均",
+            data: [],
+            fill: "+1",
+            backgroundColor: "rgba(244, 67, 54, 0.1)",
             borderColor: "#f44336",
             borderWidth: 1.75,
-            pointRadius: 2,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: "Lower band/下轨",
+            data: [],
+            fill: false,
+            borderWidth: 0,
+            pointRadius: 0,
+            tension: 0.3,
           },
           {
             label: "Raw value/原始",
             data: [],
             fill: false,
-            tension: 0.1,
-            borderColor: "#f44336",
-            borderWidth: 0.75,
-            pointRadius: 0,
+            borderWidth: 0,
+            pointRadius: 2.5,
+            pointBackgroundColor: "#333",
+            tension: 0,
           },
           {
             label: "Reference value/参考值",
             data: [],
             fill: false,
-            tension: 0.1,
-            backgroundColor: "#4CAF50", // w3-green
+            backgroundColor: "#4CAF50",
             borderColor: "#4CAF50",
             borderWidth: 1.25,
             borderDash: [10, 5],
-            pointRadius: 0.5,
+            pointRadius: 0,
+            tension: 0,
           },
         ],
       },
@@ -268,7 +293,8 @@
                   label += context.parsed.y;
                 }
                 if (
-                  context.datasetIndex == 1 &&
+                  context.datasetIndex == 3 &&
+                  remarks[context.dataIndex] &&
                   remarks[context.dataIndex].length > 0
                 ) {
                   multilineLabel = [label];
@@ -353,12 +379,16 @@
       )
         .done(function (data, status, xhr) {
           myLineChart.data.labels = data["record_times"];
-          myLineChart.data.datasets[0].data = data["values_ema"];
-          myLineChart.data.datasets[1].data = data["values_raw"];
+          myLineChart.data.datasets[0].data = data["band_upper"];
+          myLineChart.data.datasets[1].data = data["values_ema"];
+          myLineChart.data.datasets[2].data = data["band_lower"];
+          myLineChart.data.datasets[3].data = data["values_raw"];
           if (data["reference_value"] != -1) {
-            myLineChart.data.datasets[2].data = Array(
+            myLineChart.data.datasets[4].data = Array(
               data["record_times"].length
             ).fill(data["reference_value"]);
+          } else {
+            myLineChart.data.datasets[4].data = [];
           }
           remarks = data["remarks"];
           myLineChart.resetZoom();

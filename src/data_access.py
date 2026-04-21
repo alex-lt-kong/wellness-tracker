@@ -42,18 +42,26 @@ def get_average_value(username: str, value_type: str,
     try:
         con = sqlite3.connect(db_path)
         cur = con.cursor()
-        # Use parameter binding via '-' || ? || ' day' instead of
-        # .format() to avoid SQL injection — SQLite builds the date
-        # string by concatenation at execution time, keeping the
-        # user-supplied value out of the SQL template.
-        cur.execute("""
-            SELECT COUNT(value), AVG(value)
-            FROM user_data
-            WHERE
-                record_time >= date('now', '-' || ? || ' day') AND
-                username = ? AND
-                value_type = ?
-        """, (days, username, value_type))
+        if days <= 0:
+            # days=0 means "all data" — no date filter
+            cur.execute("""
+                SELECT COUNT(value), AVG(value)
+                FROM user_data
+                WHERE username = ? AND value_type = ?
+            """, (username, value_type))
+        else:
+            # Use parameter binding via '-' || ? || ' day' instead of
+            # .format() to avoid SQL injection — SQLite builds the date
+            # string by concatenation at execution time, keeping the
+            # user-supplied value out of the SQL template.
+            cur.execute("""
+                SELECT COUNT(value), AVG(value)
+                FROM user_data
+                WHERE
+                    record_time >= date('now', '-' || ? || ' day') AND
+                    username = ? AND
+                    value_type = ?
+            """, (days, username, value_type))
         results = cur.fetchall()
         con.commit()
         con.close()
@@ -143,17 +151,25 @@ def get_data_by_duration(username: str, value_type: str, days: int) -> pd.DataFr
     con: Optional[sqlite3.Connection] = None
     try:
         con = sqlite3.connect(db_path)
-        # Same pattern as get_average_value: use '||' concatenation
-        # with a bound parameter instead of .format() to prevent
-        # SQL injection.
-        df = pd.read_sql("""
-            SELECT record_time, value AS value_raw, remark
-            FROM user_data
-            WHERE username = ? AND
-                value_type = ? AND
-                (record_time >= date('now', '-' || ? || ' day'))
-            ORDER BY record_time ASC
-        """, con=con, params=[username, value_type, days])
+        if days <= 0:
+            # days=0 means "all data" — no date filter
+            df = pd.read_sql("""
+                SELECT record_time, value AS value_raw, remark
+                FROM user_data
+                WHERE username = ? AND value_type = ?
+                ORDER BY record_time ASC
+            """, con=con, params=[username, value_type])
+        else:
+            # Use '||' concatenation with a bound parameter instead of
+            # .format() to prevent SQL injection.
+            df = pd.read_sql("""
+                SELECT record_time, value AS value_raw, remark
+                FROM user_data
+                WHERE username = ? AND
+                    value_type = ? AND
+                    (record_time >= date('now', '-' || ? || ' day'))
+                ORDER BY record_time ASC
+            """, con=con, params=[username, value_type, days])
         con.close()
         return df
     except Exception as ex:

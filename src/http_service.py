@@ -89,8 +89,9 @@ def get_data_by_duration():
     except Exception:
         return Response(
             'Invalid parameters/参数错误 (/get-data-by-duration/)', 400)
-    if days <= 0 or days >= 3650:
-        days = 3650
+    # days=0 means "all data"; negative values are invalid so clamp to 0
+    if days < 0:
+        days = 0
 
     return flask.jsonify(bl.get_data_by_duration(days, get_username(), value_type))
 
@@ -103,9 +104,10 @@ def get_stats():
         return Response('Invalid parameters/参数错误 (/get-stats/)', 400)
 
     username = get_username()
-    denominators = [7, 30, 120, 365, 730, 1826, 3652]
+    denominators = [7, 30, 120, 365, 730, 1826, 3652, 0]
     denominator_names = [
-        '1w/1周', '1m/1月', '4m/4月', '1y/1年', '2y/2年', '5y/5年', '10y/10年'
+        '1w/1周', '1m/1月', '4m/4月', '1y/1年', '2y/2年',
+        '5y/5年', '10y/10年', 'All/全部'
     ]
     values_raw = bl.get_latest_data(username, value_type).values_raw
     latest_value = values_raw[0] if len(values_raw) > 0 else None
